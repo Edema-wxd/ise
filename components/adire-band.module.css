@@ -1,0 +1,67 @@
+.band {
+  /* Never squash: on a short viewport the header and footer give up space
+     before the cloth does. */
+  flex: none;
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+  border-block: 1px solid var(--cotton-faint);
+}
+
+/* Motif library — present in the DOM, out of the layout. */
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* One strip of cloth. Strips are staggered by a negative delay, so the
+   deepening travels across the band the way a dipped edge does. */
+.strip {
+  flex: 0 0 var(--cell);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--dip-2);
+  box-shadow: inset -1px 0 0 rgb(11 18 32 / 0.55);
+  animation: dip 5.6s ease-in-out infinite;
+}
+
+.cell {
+  display: block;
+  width: var(--cell);
+  height: var(--cell);
+  color: var(--cotton);
+  opacity: 0.82;
+}
+
+/* Short viewports get two passes of cloth instead of four. */
+@media (max-height: 600px) {
+  .cell:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+@keyframes dip {
+  0%,
+  100% {
+    background-color: var(--dip-1);
+  }
+  14% {
+    background-color: var(--dip-4);
+  }
+  34% {
+    background-color: var(--dip-3);
+  }
+  64% {
+    background-color: var(--dip-2);
+  }
+}
+
+/* Paused rather than removed: every strip holds at its own offset, so the
+   band settles into a still gradient instead of going flat. */
+@media (prefers-reduced-motion: reduce) {
+  .strip {
+    animation-play-state: paused;
+  }
+}

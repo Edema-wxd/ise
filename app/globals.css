@@ -1,0 +1,55 @@
+/*
+  Palette: adire eléko — Yorùbá indigo resist cloth.
+  Two materials only: indigo dye at four depths, and undyed cotton.
+  Cloth is dipped repeatedly; each pass sits deeper than the last.
+*/
+:root {
+  --vat: #0b1220; /* the dye pit — deepest ground */
+  --dip-1: #16233f;
+  --dip-2: #1e3160;
+  --dip-3: #27417a;
+  --dip-4: #3a5589; /* freshly lifted, still bright */
+
+  --cotton: #ede4d2; /* undyed cloth — the resist */
+  --cotton-dim: rgba(237, 228, 210, 0.58);
+  --cotton-quiet: rgba(237, 228, 210, 0.55); /* small caps — holds 4.7:1 */
+  --cotton-faint: rgba(237, 228, 210, 0.26); /* hairlines only */
+
+  --pad: clamp(1.25rem, 5vw, 4rem);
+  /* Sized off both axes: on a landscape phone the height term wins, so the
+     cloth cannot crowd out the statement below it. */
+  --cell: clamp(40px, min(16vw, 12vh), 64px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100dvh;
+  background-color: var(--vat);
+  background-image: radial-gradient(
+    130% 85% at 50% -15%,
+    #17264a 0%,
+    var(--vat) 60%
+  );
+  color: var(--cotton);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 2px solid var(--dip-4);
+  outline-offset: 3px;
+}
