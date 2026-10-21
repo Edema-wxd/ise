@@ -1,30 +1,164 @@
-# Ìṣẹ́
+# ISE Studio
 
-A holding screen. One route, no client JavaScript — the animation is CSS only,
-and the page prerenders as static HTML.
+Portfolio site for ISE Studio (isestudiong.com) — jewellery, accessories,
+apparel, engraved wood and 3D objects. Portfolio only: there is no cart or
+checkout, and product interest routes to a custom-order inquiry.
 
 ```bash
 npm install
+cp .env.example .env.local   # paste your Neon connection string
+npm run db:migrate
 npm run dev
 ```
 
-## The design
+The brand system — palette, type tiers, voice, scope — is in
+[AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md). Those are the source of
+truth; this file only covers how the code is put together.
 
-Built on **adire eléko**, the Yorùbá indigo resist cloth: cassava paste is
-painted onto cotton in motifs, the cloth is dipped, and the paste keeps the dye
-out. Cloth goes into the vat repeatedly, deepening with each pass.
+## Routes
 
-That process is the loading indicator. [components/adire-band.tsx](components/adire-band.tsx)
-lays out strips of hand-drawn resist motifs; each strip runs the same
-`dip` keyframes offset by a negative delay, so the deepening travels across the
-band and never finishes. Under `prefers-reduced-motion` the strips pause rather
-than stop, freezing each at its own depth so the band settles into a still
-gradient instead of going flat.
+| Route | File |
+|---|---|
+| `/` | [app/page.tsx](app/page.tsx) |
+| `/collections` | [app/collections/page.tsx](app/collections/page.tsx) |
+| `/collections/[collection]` | [app/collections/[collection]/page.tsx](app/collections/%5Bcollection%5D/page.tsx) |
+| `/projects` | [app/projects/page.tsx](app/projects/page.tsx) |
+| `/projects/[slug]` | [app/projects/[slug]/page.tsx](app/projects/%5Bslug%5D/page.tsx) |
+| `/events` | [app/events/page.tsx](app/events/page.tsx) |
+| `/contact` | [app/contact/page.tsx](app/contact/page.tsx) |
 
-Two materials only, per the craft: indigo at four depths and undyed cotton
-(`app/globals.css`). The type is Petrona for display and Archivo for utility —
-both chosen partly because they position Yorùbá tone marks over dot-below
-vowels correctly, which several otherwise-good faces do not.
+Every page route prerenders as static HTML; `/api/uploadthing` is the one
+dynamic route. The only client components are the header (for `aria-current`
+on the active section) and the inquiry form.
 
-To reuse the band elsewhere (a route-level `app/loading.tsx`, a suspense
-fallback), import `AdireBand` — it is a server component and takes no props.
+Note the product lines are called **collections** throughout — route, copy and
+data model. CLAUDE.md and the SOW still say "Products"; those should be
+updated to match, or this renamed back.
+
+## Content
+
+All copy and data live in [lib/content.ts](lib/content.ts), and the pages are
+templates over it. Adding a collection or a project means adding an entry
+there — no new route, and [app/sitemap.ts](app/sitemap.ts) picks it up.
+
+**The content in that file is placeholder.** It is written to the brand voice
+and to the right length for each slot, but no claim in it is client-approved.
+Replace it from Discovery before launch.
+
+## Database
+
+Custom-order inquiries are written to Neon (serverless Postgres) over HTTP via
+`@neondatabase/serverless` — no connection pool to manage, which suits a site
+that is otherwise entirely static.
+
+- Schema: [db/001_inquiries.sql](db/001_inquiries.sql), one `inquiries` table.
+  Migrations are re-runnable; apply them with `npm run db:migrate`.
+- Client: [lib/db.ts](lib/db.ts). Returns `null` when `DATABASE_URL` is unset.
+- Write path: [app/contact/actions.ts](app/contact/actions.ts).
+
+`DATABASE_URL` goes in `.env.local` (gitignored) locally and in the host's
+environment in production. If it is missing, or the insert fails, the form
+does not claim a save — it shows the studio's email address and logs the
+reason server-side. The site keeps serving either way.
+
+Reading the inbox is `select * from inquiries order by created_at desc` for
+now; nothing notifies the studio of a new row yet.
+
+**Before launch: the form has no rate limiting.** Server Actions accept direct
+POSTs, so it is open to automated spam. Add a limiter or put it behind the
+host's bot protection.
+
+## Media
+
+Images are hosted on UploadThing and rendered through `next/image`. Nothing
+image-shaped is committed to the repo.
+
+Every piece, collection, project and event takes an optional `image` holding
+an UploadThing URL. Where one is absent, `ImageSlot` renders the studio motif
+at the same aspect ratio, labelled "Photography to come" — so dropping a URL
+in swaps the photograph in without the layout shifting. See
+[public/photography/README.md](public/photography/README.md) for the workflow.
+
+- `UPLOADTHING_APP_ID` pins [next.config.mjs](next.config.mjs) to your own
+  `<APP_ID>.ufs.sh` subdomain. Unset, any `*.ufs.sh` host is allowed, which is
+  fine locally and should be narrowed in production.
+- `UPLOADTHING_TOKEN` is only needed for uploads made **through the app**.
+  Uploading from the UploadThing dashboard needs nothing here.
+- [app/api/uploadthing/core.ts](app/api/uploadthing/core.ts) is **closed by
+  default**. The site has no accounts, and an open upload route is a liability,
+  so every upload is rejected unless `UPLOADTHING_UPLOAD_SECRET` is set and
+  presented. Open it only when there is a studio-facing uploader to put behind
+  it, and swap the shared secret for a real session check then.
+
+## Design
+
+Tokens are in [app/globals.css](app/globals.css): six brand colors, a type
+scale topping out at 48pt display, and the band/gutter rhythm. Components
+reference tokens by name and never a literal hex, so swapping the swatch for
+the client's exact values is a one-file edit.
+
+The motif pattern in [components/motif-field.tsx](components/motif-field.tsx)
+abstracts what the studio makes — a mask, a maker's hand, a wire coil, a woven
+lattice, a set stone, wood grain. It is a tiling CSS mask, so it takes its
+colour from a palette token and fills any box. The geometry is generated by
+[scripts/build-motif-block.py](scripts/build-motif-block.py); edit it there and
+re-run the script rather than hand-editing the data URI in the CSS.
+
+`ImageSlot` is the same pattern standing in for a photograph that has not been
+delivered, labelled so the gap is visible rather than silent. Swap it for
+`next/image` as the galleries arrive; the layouts are already sized for the
+aspect ratios it uses.
+
+## Before launch
+
+- **Fonts.** Feneon Single and Kinesis Pro 3 are licensed and not in the repo;
+  [app/layout.tsx](app/layout.tsx) loads open substitutes chosen against what
+  the real faces do, and documents the swap. Space Grotesk is the real brand
+  face already. Note that the brand sheet calls for a grotesk sans in the body
+  tier, but Kinesis Pro is a serif — the substitute follows the typeface, not
+  the sheet. Worth confirming which was intended.
+- **Logo.** The header sets the wordmark in type until `LOGO` is set in
+  [lib/content.ts](lib/content.ts); see
+  [public/brand/README.md](public/brand/README.md). The hand-drawn mark must
+  not be redrawn — drop in the client's SVG.
+- **Palette.** Hex values are read from the brand swatch; confirm exact values.
+- **Contact form.** Saves to Neon, but nothing tells the studio a row landed,
+  and there is no rate limiting. Both are above.
+- **Brand assets.** Drop the mark and share image into
+  [public/brand/](public/brand/); photography goes to UploadThing, see above.
+- **Upload route.** Closed by default. Needs an auth decision before any
+  studio-facing uploader is built.
+- **Analytics and hosting.** Still outstanding.
+- **Dependency advisories.** `npm audit` reports several critical issues in
+  the pinned Next 16.3.2 (RCE in image optimization and `next/og`, cache
+  poisoning). These predate this work; upgrading is its own change.
+
+## Neon
+
+The site runs on three Neon services, all on the branch named in `NEON_BRANCH`,
+all declared in `neon.ts`:
+
+| Service | What uses it |
+| --- | --- |
+| Lakebase Postgres | the `inquiries` table behind the custom-orders form (`lib/db.ts`, `app/contact/actions.ts`) |
+| Auth (Managed Better Auth) | sign-in for `/studio` (`lib/auth/server.ts`, `proxy.ts`) |
+| Functions | `functions/inquiries.ts`, the studio's inbox feed, running next to the database |
+
+Setup in a fresh checkout:
+
+```bash
+neon env pull                        # writes the Neon-managed vars into .env.local
+# then fill in the two "ours" blocks at the bottom of .env.example
+npm run db:migrate                   # applies db/*.sql
+neon deploy --env .env.local         # applies neon.ts and deploys the function
+npm run dev
+```
+
+A studio account is created in the Neon console (Auth > Users), or with the
+Auth API, and then added to `STUDIO_EMAILS`. Being signed in is not enough:
+the function checks that allowlist against `neon_auth.user` before it returns a
+row, so an account that is not listed gets a 403.
+
+Before launch: add the production origin to `STUDIO_ORIGINS`, register it with
+`neon neon-auth domain add https://isestudiong.com`, and move Auth off the
+shared SMTP sender (https://neon.com/docs/auth/production-checklist.md).

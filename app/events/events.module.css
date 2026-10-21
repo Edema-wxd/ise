@@ -1,0 +1,45 @@
+.list {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 4rem);
+  grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  min-width: 0;
+}
+
+.copy {
+  padding-top: 1.25rem;
+  border-top: 2px solid var(--brick);
+  margin-top: 1.25rem;
+}
+
+.title {
+  font-size: var(--size-heading);
+}
+
+.meta {
+  margin-top: 0.6rem;
+  color: var(--ink-muted);
+}
+
+.note {
+  margin-top: 0.8rem;
+  max-width: 40ch;
+}
+
+.next {
+  display: grid;
+  gap: 1.25rem;
+  justify-items: start;
+  padding-top: clamp(2.5rem, 5vw, 4rem);
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+  border-top: 1px solid var(--ink-rule);
+}
+
+.nextBody {
+  max-width: 46ch;
+}

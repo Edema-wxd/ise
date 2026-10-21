@@ -1,0 +1,13 @@
+.intro {
+  padding-block: clamp(2.75rem, 7vw, 5rem) clamp(2rem, 5vw, 3.5rem);
+  border-bottom: 2px solid var(--brick);
+}
+
+.intro h1 {
+  max-width: 24ch;
+}
+
+.body {
+  margin-top: 1.5rem;
+  color: var(--paper-muted);
+}
