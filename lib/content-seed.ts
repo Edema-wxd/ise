@@ -30,7 +30,6 @@ export const LOGO: Logo | null = {
   height: 609.65,
   alt: "ISE Studio",
 };
-
 export const SITE: Site = {
   name: "ISE Studio",
   /** Canonical origin, used by metadata and the sitemap. */
