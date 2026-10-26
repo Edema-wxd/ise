@@ -238,7 +238,7 @@ during prerender validation (non-fatal; the build exits 0).
 
 ## Open items
 
-- Who holds the single account's credentials, and where are they stored
+- Which accounts go on `STUDIO_EMAILS`, and who holds their credentials
 - Whether a new inquiry should send email (Resend or similar) or whether the
   unread badge is enough
 - Whether the client wants to edit the six palette hex values from the admin.

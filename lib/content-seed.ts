@@ -23,11 +23,17 @@ import type { Collection, Copy, Event, Logo, NavItem, Project, Site } from "./co
 /** The header renders this when set, and falls back to the wordmark in type
  *  when it is null. Per the brand guide the hand-drawn mark must not be
  *  redrawn — this points at the client's own file. See public/brand/README.md. */
-export const LOGO: Logo | null = null;
+export const LOGO: Logo | null = {
+  // The client's plain mark as delivered: black line art, 611.51 × 609.65.
+  src: "/brand/logo.svg",
+  width: 611.51,
+  height: 609.65,
+  alt: "ISE Studio",
+};
 export const SITE: Site = {
   name: "ISE Studio",
   /** Canonical origin, used by metadata and the sitemap. */
-  url: "https://isestudiong.com",
+  url: "https://www.isestudiong.com",
   tagline: "Industrial design out of Nigeria — objects for the body and the room.",
   /** TODO(client): confirm the inbox that custom-order mail should reach. */
   email: "hello@isestudiong.com",

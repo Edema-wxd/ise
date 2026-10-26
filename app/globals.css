@@ -137,14 +137,18 @@ svg {
   padding-block: var(--band);
 }
 
+/* The page is dark by default; light bands say so, or the browser draws their
+   form controls for a dark ground (an unchecked radio renders filled). */
 .bandPaper {
   background-color: var(--paper);
   color: var(--eggplant);
+  color-scheme: light;
 }
 
 .bandPeach {
   background-color: var(--peach);
   color: var(--eggplant);
+  color-scheme: light;
 }
 
 .lead {
