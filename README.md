@@ -187,6 +187,14 @@ Neon Auth is optional at build time. With `NEON_AUTH_BASE_URL` or
 and `/api/auth/*` answers 503. Set both on the host before building, since the
 sign-in page is prerendered.
 
+The custom-orders form is capped per caller and site-wide (`lib/rate-limit.ts`,
+counters in `inquiry_attempts`). An hourly Function Trigger POSTs to
+`/digest` on the inquiries function, which hands every row the studio has not
+seen to `STUDIO_WEBHOOK_URL` and stamps `inquiries.notified_at` only once that
+destination answers 2xx — a destination that is down means the next tick
+retries rather than dropping the inquiry. With no destination configured the
+digest says so and leaves the rows pending.
+
 A studio account is created in the Neon console (Auth > Users), or with the
 Auth API, and then added to `STUDIO_EMAILS`. Being signed in is not enough:
 the function checks that allowlist against `neon_auth.user` before it returns a

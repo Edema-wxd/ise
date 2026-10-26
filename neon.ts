@@ -23,7 +23,25 @@ export default defineConfig({
         STUDIO_EMAILS: process.env.STUDIO_EMAILS!,
         /** Browser origins allowed to call it, comma separated. */
         STUDIO_ORIGINS: process.env.STUDIO_ORIGINS!,
+        /* Where the hourly digest posts new inquiries. Spread in only when
+           set: writing an unset key as "" would delete the live value, and
+           the digest is written to report a missing destination rather than
+           silently mark rows delivered. */
+        ...(process.env.STUDIO_WEBHOOK_URL
+          ? { STUDIO_WEBHOOK_URL: process.env.STUDIO_WEBHOOK_URL }
+          : {}),
       },
+    },
+  },
+
+  triggers: {
+    // Neon POSTs this on the hour; the handler is a no-op when nothing new
+    // has come in, so an idle site costs an empty query.
+    "inquiries-digest": {
+      type: "schedule",
+      function: "inquiries",
+      cron: "0 * * * *",
+      functionPath: "/digest",
     },
   },
 

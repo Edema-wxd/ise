@@ -2,6 +2,7 @@
 
 import { getSql } from "@/lib/db";
 import { getSite } from "@/lib/content";
+import { allowInquiry } from "@/lib/rate-limit";
 import type { InquiryState, InquiryValues } from "./inquiry";
 
 const KINDS = new Set(["commission", "general"]);
@@ -22,12 +23,12 @@ function text(form: FormData, field: string) {
  * everything here is validated and length-capped server side regardless of
  * what the client sent.
  *
- * TODO(before launch): there is no rate limiting, so the form is open to
- * automated spam. Add a limiter — Neon can hold the counters — or put the
- * route behind the host's bot protection.
+ * Submissions are capped per caller and site-wide — see `lib/rate-limit.ts`.
+ * That is a speed bump, not bot protection: put the route behind the host's
+ * own bot rules as well if the form starts attracting real traffic.
  *
- * TODO(client): nothing notifies the studio of a new row yet. Decide whether
- * that is an email on insert or someone reading the table.
+ * A saved inquiry is handed to the studio by the hourly digest in
+ * `functions/inquiries.ts`, which reads the rows this writes.
  */
 export async function sendInquiry(
   previous: InquiryState,
@@ -80,6 +81,21 @@ export async function sendInquiry(
   if (!sql) {
     console.error("sendInquiry: DATABASE_URL is not set, inquiry not saved");
     return undelivered;
+  }
+
+  /* Checked here rather than before validation: a submission the form already
+     rejected has cost nothing and should not use up anyone's allowance. */
+  try {
+    if (!(await allowInquiry(sql))) {
+      return {
+        ...undelivered,
+        message: `That is more than the form takes in an hour. Email ${site.email} and the studio will pick it up.`,
+      };
+    }
+  } catch (error) {
+    // A limiter that cannot read its own table must not block a real
+    // commission. Log it and let the submission through.
+    console.error("sendInquiry: rate-limit check failed, allowing", error);
   }
 
   try {
