@@ -22,15 +22,17 @@ export function SiteHeader() {
       <div className={styles.inner}>
         <Link href="/" className={styles.mark} aria-label={`${SITE.name}, home`}>
           {LOGO ? (
-            /* A plain img, not next/image: the mark is an SVG, which the image
-               optimizer passes through unchanged. Width and height are the
-               file's own, so the space is reserved before it loads. */
-            <img
-              src={LOGO.src}
-              width={LOGO.width}
-              height={LOGO.height}
-              alt={LOGO.alt}
+            /* The delivered mark is black line art, which disappears on the
+               eggplant header. Used as a mask it takes the paper token
+               instead, so the file is shown as drawn and never edited or
+               redrawn. The link's own label names it. */
+            <span
+              aria-hidden="true"
               className={styles.logo}
+              style={{
+                maskImage: `url("${LOGO.src}")`,
+                aspectRatio: `${LOGO.width} / ${LOGO.height}`,
+              }}
             />
           ) : (
             SITE.name
