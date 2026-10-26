@@ -115,6 +115,13 @@ Because the whole page blocks on `cookies()`, `/studio` carries
 `export const instant = false` — there is no useful static shell for a page
 that cannot render before it knows who is asking.
 
+Neon Auth is optional at build time: `getAuth()` in
+[lib/auth/server.ts](../lib/auth/server.ts) returns null when
+`NEON_AUTH_BASE_URL` or `NEON_AUTH_COOKIE_SECRET` is unset. The proxy and
+`/studio` then redirect to `/auth/sign-in`, which says sign-in is not set up,
+and the public site still builds and serves. Every Phase 4 action must treat a
+null `getAuth()` as "refuse", the same way.
+
 ### Admin look
 
 Brand tokens from `app/globals.css`, no seventh colour. Space Grotesk
