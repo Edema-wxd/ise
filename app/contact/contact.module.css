@@ -1,0 +1,178 @@
+.layout {
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 5rem);
+  align-items: start;
+}
+
+@media (min-width: 54rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+}
+
+/* ---- Form ---- */
+
+.formWrap {
+  display: grid;
+  gap: 1.5rem;
+  justify-items: start;
+  min-width: 0;
+  max-width: 34rem;
+}
+
+.form {
+  display: grid;
+  gap: 1.75rem;
+  justify-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.fieldset {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend,
+.label {
+  display: block;
+  padding: 0;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-body);
+  font-weight: 500;
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.75rem;
+  margin-top: 0.85rem;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.choice input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--brick);
+}
+
+.field {
+  width: 100%;
+  min-width: 0;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  background-color: var(--paper);
+  color: var(--eggplant);
+  font: inherit;
+  /* Inputs are the one place the eggplant rule beats a hairline: the field has
+     to look like somewhere you can type. */
+  border: 1px solid var(--mauve);
+  border-radius: 0;
+}
+
+.input:focus-visible {
+  border-color: var(--eggplant);
+}
+
+.hint,
+.error {
+  margin-top: 0.5rem;
+  font-size: var(--size-small);
+}
+
+.hint {
+  color: var(--ink-muted);
+}
+
+.error {
+  color: var(--brick);
+  font-weight: 400;
+}
+
+.status:empty {
+  display: none;
+}
+
+.status {
+  max-width: 44ch;
+  padding: 0.9rem 1.1rem;
+  background-color: var(--peach);
+  color: var(--eggplant);
+  font-size: var(--size-small);
+}
+
+/* A failure has to be distinguishable from a success without reading it, so
+   it takes the brick rule the rest of the site uses for emphasis. */
+.statusFailed {
+  border-left: 4px solid var(--brick);
+}
+
+/* ---- Aside ---- */
+
+.aside {
+  min-width: 0;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--brick);
+}
+
+.asideHeading {
+  font-size: var(--size-heading);
+}
+
+.asideHeading + * {
+  margin-top: 0.9rem;
+}
+
+.aside .asideHeading:not(:first-child) {
+  margin-top: clamp(2rem, 4vw, 2.75rem);
+}
+
+.asideBody {
+  max-width: 40ch;
+}
+
+.contacts {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contactLink {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  text-decoration-color: var(--ink-rule);
+}
+
+.contactLink:hover {
+  color: var(--brick);
+  text-decoration-color: currentColor;
+}
+
+/* A commission genuinely is a sequence, so these are numbered. */
+.steps {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 42ch;
+  margin: 1rem 0 0;
+  padding-inline-start: 1.4rem;
+}
+
+.steps li::marker {
+  color: var(--brick);
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+}

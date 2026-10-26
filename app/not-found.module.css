@@ -1,0 +1,18 @@
+.links {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-lead);
+  text-decoration-color: var(--paper-rule);
+}
+
+.link:hover {
+  color: var(--coral);
+  text-decoration-color: currentColor;
+}

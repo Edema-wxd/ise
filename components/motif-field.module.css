@@ -1,0 +1,88 @@
+/*
+  The studio works in metal, wood, cloth and 3D form, and its mark is
+  hand-drawn line art. These motifs abstract that vocabulary — a mask, a
+  maker's hand, a wire coil, a woven lattice, a set stone, wood grain — so the
+  pattern on the page is drawn from what the studio actually makes rather than
+  applied as decoration. Coordinates sit slightly off-true on purpose: the
+  source is a hand holding a tool, not a plotter.
+
+  The block is a mask rather than an image, so its colour comes from the
+  palette token and it tiles to fill any box at any size. Edit the geometry in
+  `scripts/build-motif-block.py` and re-run it; do not hand-edit the data URI.
+*/
+.field {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--ground);
+}
+
+.field::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: var(--ink);
+  /* The ink sits back from full strength: cassava-paste resist and an
+     engraved line both read as a tone against the ground, not a hard graphic. */
+  opacity: 0.62;
+  mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2096%2096%27%20fill%3D%27none%27%20stroke%3D%27%23000%27%20stroke-width%3D%271.1%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cg%20transform%3D%27translate%280%200%29%27%3E%3Cpath%20d%3D%27M12.1%202.8c4.6%200%207%203.1%206.9%208.2-.1%206.2-3.2%2010.2-6.9%2010.2s-6.9-4-6.8-10.2C5.4%205.9%207.6%202.8%2012.1%202.8Z%27%2F%3E%3Cpath%20d%3D%27M8.4%2010.3h2.6M13.1%2010.2h2.6%27%20stroke-width%3D%271.5%27%2F%3E%3Cpath%20d%3D%27M12%2013.1v4.2%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2824%200%29%27%3E%3Cpath%20d%3D%27M3.4%2020.6c0-9.6%202.9-17.3%206.4-17.3%27%2F%3E%3Cpath%20d%3D%27M8.2%2020.5c0-8.2%202.5-14.8%205.5-14.8%27%2F%3E%3Cpath%20d%3D%27M13.2%2020.7c0-6.6%202-11.9%204.4-11.9%27%2F%3E%3Cpath%20d%3D%27M18.4%2020.6c0-4.5%201-8%202.2-8%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2848%200%29%27%3E%3Cpath%20d%3D%27M12.1%203.2%2020.4%209.4%2017.1%2020.5H6.9L3.6%209.3Z%27%2F%3E%3Cpath%20d%3D%27M12%208.1%2015.6%2011%2014.2%2016.2H9.8L8.4%2011Z%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2872%200%29%27%3E%3Cpath%20d%3D%27M3.4%209.6%209.7%203.3M3.2%2016.1%2016.2%203.2M6.6%2020.6%2020.5%206.7M13.3%2020.8%2020.7%2013.4%27%2F%3E%3Cpath%20d%3D%27M3.5%203.4%2020.6%2020.5%27%20stroke-width%3D%27.85%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%280%2024%29%27%3E%3Cpath%20d%3D%27M12.1%203.2%2020.4%209.4%2017.1%2020.5H6.9L3.6%209.3Z%27%2F%3E%3Cpath%20d%3D%27M12%208.1%2015.6%2011%2014.2%2016.2H9.8L8.4%2011Z%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2824%2024%29%27%3E%3Cpath%20d%3D%27M3.4%209.6%209.7%203.3M3.2%2016.1%2016.2%203.2M6.6%2020.6%2020.5%206.7M13.3%2020.8%2020.7%2013.4%27%2F%3E%3Cpath%20d%3D%27M3.5%203.4%2020.6%2020.5%27%20stroke-width%3D%27.85%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2848%2024%29%27%3E%3Cpath%20d%3D%27M12%2012.1a2.3%202.3%200%201%201%202.4%202.2%204.6%204.6%200%200%201-4.8-4.5%207%207%200%200%201%207.1-6.7%27%2F%3E%3Cpath%20d%3D%27M12%2012.1a2.3%202.3%200%201%200-2.4-2.2%27%2F%3E%3Cpath%20d%3D%27M6.8%2020.4h10.5%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2872%2024%29%27%3E%3Cpath%20d%3D%27M6.4%2021.2c-.4-3.4.3-5.9%202.1-7.6%27%2F%3E%3Cpath%20d%3D%27M8.6%2013.4%207.2%204.1M11.3%2012.4%2011.8%202.9M14%2012.6l2.2-9.2M16.3%2014l3.7-7.6%27%2F%3E%3Cpath%20d%3D%27M9.1%2013.3c3.4-1.4%206.6-1.2%209.6.5%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%280%2048%29%27%3E%3Cpath%20d%3D%27M12%2012.1a2.3%202.3%200%201%201%202.4%202.2%204.6%204.6%200%200%201-4.8-4.5%207%207%200%200%201%207.1-6.7%27%2F%3E%3Cpath%20d%3D%27M12%2012.1a2.3%202.3%200%201%200-2.4-2.2%27%2F%3E%3Cpath%20d%3D%27M6.8%2020.4h10.5%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2824%2048%29%27%3E%3Cpath%20d%3D%27M6.4%2021.2c-.4-3.4.3-5.9%202.1-7.6%27%2F%3E%3Cpath%20d%3D%27M8.6%2013.4%207.2%204.1M11.3%2012.4%2011.8%202.9M14%2012.6l2.2-9.2M16.3%2014l3.7-7.6%27%2F%3E%3Cpath%20d%3D%27M9.1%2013.3c3.4-1.4%206.6-1.2%209.6.5%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2848%2048%29%27%3E%3Cpath%20d%3D%27M12.1%202.8c4.6%200%207%203.1%206.9%208.2-.1%206.2-3.2%2010.2-6.9%2010.2s-6.9-4-6.8-10.2C5.4%205.9%207.6%202.8%2012.1%202.8Z%27%2F%3E%3Cpath%20d%3D%27M8.4%2010.3h2.6M13.1%2010.2h2.6%27%20stroke-width%3D%271.5%27%2F%3E%3Cpath%20d%3D%27M12%2013.1v4.2%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2872%2048%29%27%3E%3Cpath%20d%3D%27M3.4%2020.6c0-9.6%202.9-17.3%206.4-17.3%27%2F%3E%3Cpath%20d%3D%27M8.2%2020.5c0-8.2%202.5-14.8%205.5-14.8%27%2F%3E%3Cpath%20d%3D%27M13.2%2020.7c0-6.6%202-11.9%204.4-11.9%27%2F%3E%3Cpath%20d%3D%27M18.4%2020.6c0-4.5%201-8%202.2-8%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%280%2072%29%27%3E%3Cpath%20d%3D%27M12.1%202.8c4.6%200%207%203.1%206.9%208.2-.1%206.2-3.2%2010.2-6.9%2010.2s-6.9-4-6.8-10.2C5.4%205.9%207.6%202.8%2012.1%202.8Z%27%2F%3E%3Cpath%20d%3D%27M8.4%2010.3h2.6M13.1%2010.2h2.6%27%20stroke-width%3D%271.5%27%2F%3E%3Cpath%20d%3D%27M12%2013.1v4.2%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2824%2072%29%27%3E%3Cpath%20d%3D%27M3.4%2020.6c0-9.6%202.9-17.3%206.4-17.3%27%2F%3E%3Cpath%20d%3D%27M8.2%2020.5c0-8.2%202.5-14.8%205.5-14.8%27%2F%3E%3Cpath%20d%3D%27M13.2%2020.7c0-6.6%202-11.9%204.4-11.9%27%2F%3E%3Cpath%20d%3D%27M18.4%2020.6c0-4.5%201-8%202.2-8%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2848%2072%29%27%3E%3Cpath%20d%3D%27M12.1%203.2%2020.4%209.4%2017.1%2020.5H6.9L3.6%209.3Z%27%2F%3E%3Cpath%20d%3D%27M12%208.1%2015.6%2011%2014.2%2016.2H9.8L8.4%2011Z%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2872%2072%29%27%3E%3Cpath%20d%3D%27M3.4%209.6%209.7%203.3M3.2%2016.1%2016.2%203.2M6.6%2020.6%2020.5%206.7M13.3%2020.8%2020.7%2013.4%27%2F%3E%3Cpath%20d%3D%27M3.5%203.4%2020.6%2020.5%27%20stroke-width%3D%27.85%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  mask-size: var(--block) var(--block);
+  mask-repeat: repeat;
+  mask-position: center;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2096%2096%27%20fill%3D%27none%27%20stroke%3D%27%23000%27%20stroke-width%3D%271.1%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cg%20transform%3D%27translate%280%200%29%27%3E%3Cpath%20d%3D%27M12.1%202.8c4.6%200%207%203.1%206.9%208.2-.1%206.2-3.2%2010.2-6.9%2010.2s-6.9-4-6.8-10.2C5.4%205.9%207.6%202.8%2012.1%202.8Z%27%2F%3E%3Cpath%20d%3D%27M8.4%2010.3h2.6M13.1%2010.2h2.6%27%20stroke-width%3D%271.5%27%2F%3E%3Cpath%20d%3D%27M12%2013.1v4.2%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2824%200%29%27%3E%3Cpath%20d%3D%27M3.4%2020.6c0-9.6%202.9-17.3%206.4-17.3%27%2F%3E%3Cpath%20d%3D%27M8.2%2020.5c0-8.2%202.5-14.8%205.5-14.8%27%2F%3E%3Cpath%20d%3D%27M13.2%2020.7c0-6.6%202-11.9%204.4-11.9%27%2F%3E%3Cpath%20d%3D%27M18.4%2020.6c0-4.5%201-8%202.2-8%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2848%200%29%27%3E%3Cpath%20d%3D%27M12.1%203.2%2020.4%209.4%2017.1%2020.5H6.9L3.6%209.3Z%27%2F%3E%3Cpath%20d%3D%27M12%208.1%2015.6%2011%2014.2%2016.2H9.8L8.4%2011Z%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2872%200%29%27%3E%3Cpath%20d%3D%27M3.4%209.6%209.7%203.3M3.2%2016.1%2016.2%203.2M6.6%2020.6%2020.5%206.7M13.3%2020.8%2020.7%2013.4%27%2F%3E%3Cpath%20d%3D%27M3.5%203.4%2020.6%2020.5%27%20stroke-width%3D%27.85%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%280%2024%29%27%3E%3Cpath%20d%3D%27M12.1%203.2%2020.4%209.4%2017.1%2020.5H6.9L3.6%209.3Z%27%2F%3E%3Cpath%20d%3D%27M12%208.1%2015.6%2011%2014.2%2016.2H9.8L8.4%2011Z%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2824%2024%29%27%3E%3Cpath%20d%3D%27M3.4%209.6%209.7%203.3M3.2%2016.1%2016.2%203.2M6.6%2020.6%2020.5%206.7M13.3%2020.8%2020.7%2013.4%27%2F%3E%3Cpath%20d%3D%27M3.5%203.4%2020.6%2020.5%27%20stroke-width%3D%27.85%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2848%2024%29%27%3E%3Cpath%20d%3D%27M12%2012.1a2.3%202.3%200%201%201%202.4%202.2%204.6%204.6%200%200%201-4.8-4.5%207%207%200%200%201%207.1-6.7%27%2F%3E%3Cpath%20d%3D%27M12%2012.1a2.3%202.3%200%201%200-2.4-2.2%27%2F%3E%3Cpath%20d%3D%27M6.8%2020.4h10.5%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2872%2024%29%27%3E%3Cpath%20d%3D%27M6.4%2021.2c-.4-3.4.3-5.9%202.1-7.6%27%2F%3E%3Cpath%20d%3D%27M8.6%2013.4%207.2%204.1M11.3%2012.4%2011.8%202.9M14%2012.6l2.2-9.2M16.3%2014l3.7-7.6%27%2F%3E%3Cpath%20d%3D%27M9.1%2013.3c3.4-1.4%206.6-1.2%209.6.5%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%280%2048%29%27%3E%3Cpath%20d%3D%27M12%2012.1a2.3%202.3%200%201%201%202.4%202.2%204.6%204.6%200%200%201-4.8-4.5%207%207%200%200%201%207.1-6.7%27%2F%3E%3Cpath%20d%3D%27M12%2012.1a2.3%202.3%200%201%200-2.4-2.2%27%2F%3E%3Cpath%20d%3D%27M6.8%2020.4h10.5%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2824%2048%29%27%3E%3Cpath%20d%3D%27M6.4%2021.2c-.4-3.4.3-5.9%202.1-7.6%27%2F%3E%3Cpath%20d%3D%27M8.6%2013.4%207.2%204.1M11.3%2012.4%2011.8%202.9M14%2012.6l2.2-9.2M16.3%2014l3.7-7.6%27%2F%3E%3Cpath%20d%3D%27M9.1%2013.3c3.4-1.4%206.6-1.2%209.6.5%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2848%2048%29%27%3E%3Cpath%20d%3D%27M12.1%202.8c4.6%200%207%203.1%206.9%208.2-.1%206.2-3.2%2010.2-6.9%2010.2s-6.9-4-6.8-10.2C5.4%205.9%207.6%202.8%2012.1%202.8Z%27%2F%3E%3Cpath%20d%3D%27M8.4%2010.3h2.6M13.1%2010.2h2.6%27%20stroke-width%3D%271.5%27%2F%3E%3Cpath%20d%3D%27M12%2013.1v4.2%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2872%2048%29%27%3E%3Cpath%20d%3D%27M3.4%2020.6c0-9.6%202.9-17.3%206.4-17.3%27%2F%3E%3Cpath%20d%3D%27M8.2%2020.5c0-8.2%202.5-14.8%205.5-14.8%27%2F%3E%3Cpath%20d%3D%27M13.2%2020.7c0-6.6%202-11.9%204.4-11.9%27%2F%3E%3Cpath%20d%3D%27M18.4%2020.6c0-4.5%201-8%202.2-8%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%280%2072%29%27%3E%3Cpath%20d%3D%27M12.1%202.8c4.6%200%207%203.1%206.9%208.2-.1%206.2-3.2%2010.2-6.9%2010.2s-6.9-4-6.8-10.2C5.4%205.9%207.6%202.8%2012.1%202.8Z%27%2F%3E%3Cpath%20d%3D%27M8.4%2010.3h2.6M13.1%2010.2h2.6%27%20stroke-width%3D%271.5%27%2F%3E%3Cpath%20d%3D%27M12%2013.1v4.2%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2824%2072%29%27%3E%3Cpath%20d%3D%27M3.4%2020.6c0-9.6%202.9-17.3%206.4-17.3%27%2F%3E%3Cpath%20d%3D%27M8.2%2020.5c0-8.2%202.5-14.8%205.5-14.8%27%2F%3E%3Cpath%20d%3D%27M13.2%2020.7c0-6.6%202-11.9%204.4-11.9%27%2F%3E%3Cpath%20d%3D%27M18.4%2020.6c0-4.5%201-8%202.2-8%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2848%2072%29%27%3E%3Cpath%20d%3D%27M12.1%203.2%2020.4%209.4%2017.1%2020.5H6.9L3.6%209.3Z%27%2F%3E%3Cpath%20d%3D%27M12%208.1%2015.6%2011%2014.2%2016.2H9.8L8.4%2011Z%27%2F%3E%3C%2Fg%3E%3Cg%20transform%3D%27translate%2872%2072%29%27%3E%3Cpath%20d%3D%27M3.4%209.6%209.7%203.3M3.2%2016.1%2016.2%203.2M6.6%2020.6%2020.5%206.7M13.3%2020.8%2020.7%2013.4%27%2F%3E%3Cpath%20d%3D%27M3.5%203.4%2020.6%2020.5%27%20stroke-width%3D%27.85%27%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+  -webkit-mask-size: var(--block) var(--block);
+  -webkit-mask-repeat: repeat;
+  -webkit-mask-position: center;
+}
+
+.tile {
+  --block: clamp(9rem, 26vw, 12rem);
+}
+
+.scaleField {
+  --block: clamp(10rem, 22vw, 14rem);
+}
+
+/* ---- Photograph stand-in ---- */
+
+.slot {
+  position: relative;
+  overflow: hidden;
+}
+
+.square {
+  aspect-ratio: 1;
+}
+
+.tall {
+  aspect-ratio: 4 / 5;
+}
+
+.wide {
+  aspect-ratio: 3 / 2;
+}
+
+.slotField {
+  position: absolute;
+  inset: 0;
+}
+
+.slotImage {
+  object-fit: cover;
+}
+
+/* A chip, not a caption bar: it reports the state of the asset, and should
+   not outweigh the heading that names the piece. */
+.slotLabel {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 1;
+  max-width: 100%;
+  padding: 0.45rem 0.7rem;
+  background-color: var(--eggplant);
+  color: var(--paper);
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.25;
+}

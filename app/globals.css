@@ -1,24 +1,44 @@
 /*
-  Palette: adire eléko — Yorùbá indigo resist cloth.
-  Two materials only: indigo dye at four depths, and undyed cotton.
-  Cloth is dipped repeatedly; each pass sits deeper than the last.
+  ISE Studio design tokens.
+
+  Palette is locked to the six brand colors (see CLAUDE.md). Nothing here
+  introduces a seventh — the only derived values are brand colors at reduced
+  alpha, for hairlines and muted text, and each is named for its role.
+
+  Hex values are read from the shared brand swatch and are approximations.
+  Swap them for the client's exact values before launch; because every
+  component references the token and never a literal, that is a one-file edit.
 */
 :root {
-  --vat: #0b1220; /* the dye pit — deepest ground */
-  --dip-1: #16233f;
-  --dip-2: #1e3160;
-  --dip-3: #27417a;
-  --dip-4: #3a5589; /* freshly lifted, still bright */
+  --brick: #9c2b28;
+  --eggplant: #3b1354;
+  --mauve: #6e5670;
+  --coral: #ef8c86;
+  --peach: #f7c7ac;
+  --paper: #f4f1ef;
 
-  --cotton: #ede4d2; /* undyed cloth — the resist */
-  --cotton-dim: rgba(237, 228, 210, 0.58);
-  --cotton-quiet: rgba(237, 228, 210, 0.55); /* small caps — holds 4.7:1 */
-  --cotton-faint: rgba(237, 228, 210, 0.26); /* hairlines only */
+  /* Paper at alpha, for type and rules on the eggplant ground.
+     --paper-muted holds 7:1 on eggplant; --paper-rule is hairlines only. */
+  --paper-muted: rgb(244 241 239 / 0.74);
+  --paper-rule: rgb(244 241 239 / 0.22);
 
-  --pad: clamp(1.25rem, 5vw, 4rem);
-  /* Sized off both axes: on a landscape phone the height term wins, so the
-     cloth cannot crowd out the statement below it. */
-  --cell: clamp(40px, min(16vw, 12vh), 64px);
+  /* Eggplant at alpha, for the same jobs on the paper ground.
+     --ink-muted holds 8:1 on paper. */
+  --ink-muted: rgb(59 19 84 / 0.76);
+  --ink-rule: rgb(59 19 84 / 0.16);
+
+  /* Type scale. Display tops out at 4rem = 48pt, per the brand type sheet. */
+  --size-display: clamp(2.5rem, 7vw, 4rem);
+  --size-title: clamp(1.9rem, 4.6vw, 2.75rem);
+  --size-heading: clamp(1.35rem, 2.6vw, 1.75rem);
+  --size-subhead: clamp(1.25rem, 2.4vw, 2rem);
+  --size-lead: 1.1875rem;
+  --size-body: 1.0625rem;
+  --size-small: 0.875rem;
+
+  --gutter: clamp(1.25rem, 5vw, 4.5rem);
+  --measure: 62ch;
+  --band: clamp(3.5rem, 9vw, 7rem);
 }
 
 *,
@@ -33,23 +53,157 @@
 
 html {
   color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-height: 100dvh;
-  background-color: var(--vat);
-  background-image: radial-gradient(
-    130% 85% at 50% -15%,
-    #17264a 0%,
-    var(--vat) 60%
-  );
-  color: var(--cotton);
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--eggplant);
+  color: var(--paper);
+  font-family: var(--font-body), Georgia, serif;
+  font-size: var(--size-body);
+  font-weight: 400;
+  /* A serif body face wants a little more leading than the sans it replaced. */
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--size-display);
+}
+
+h2 {
+  font-size: var(--size-title);
+}
+
+h3 {
+  font-size: var(--size-heading);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
 :focus-visible {
-  outline: 2px solid var(--dip-4);
+  outline: 3px solid var(--coral);
   outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---- Primitives used on every route ---- */
+
+.wrap {
+  width: 100%;
+  max-width: 82rem;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Each route is a stack of full-bleed bands; the band owns its own ground
+   color so sections can abut without a wrapper deciding the color for them. */
+.band {
+  padding-block: var(--band);
+}
+
+/* The page is dark by default; light bands say so, or the browser draws their
+   form controls for a dark ground (an unchecked radio renders filled). */
+.bandPaper {
+  background-color: var(--paper);
+  color: var(--eggplant);
+  color-scheme: light;
+}
+
+.bandPeach {
+  background-color: var(--peach);
+  color: var(--eggplant);
+  color-scheme: light;
+}
+
+.lead {
+  max-width: var(--measure);
+  font-size: var(--size-lead);
+  line-height: 1.6;
+}
+
+.subhead {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-subhead);
+  font-weight: 300;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* Piece metadata: material, dimension, collection. Set in the UI face so it
+   reads as specification rather than prose. */
+.spec {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-small);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.cta,
+.ctaQuiet {
+  display: inline-block;
+  padding: 0.85rem 1.6rem;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-body);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.cta {
+  background-color: var(--brick);
+  color: var(--paper);
+}
+
+.cta:hover {
+  background-color: var(--eggplant);
+}
+
+.bandPaper .cta:hover,
+.bandPeach .cta:hover {
+  background-color: var(--eggplant);
+}
+
+.ctaQuiet {
+  border: 1px solid currentColor;
+}
+
+.ctaQuiet:hover {
+  background-color: var(--coral);
+  color: var(--eggplant);
 }
