@@ -3,7 +3,7 @@
 }
 
 /* Full-width shots keep the card the same height as a single-photo card, so a
-   row of items lines up whatever each one holds. */
+   row of pieces lines up whatever each one holds. */
 .track {
   display: grid;
   grid-auto-flow: column;

@@ -19,6 +19,20 @@ const nextConfig = {
       },
     ],
   },
+
+  /*
+    Cache Components: data access is dynamic unless a `use cache` scope says
+    otherwise, and each cached scope can be invalidated by tag. The content
+    readers in lib/content.ts are those scopes, so the public pages still
+    prerender while a publish in the studio invalidates exactly what changed.
+
+    It is also what makes preview work without giving up static pages:
+    `draftMode().isEnabled` is readable inside a cache scope, and draft mode
+    makes those scopes re-execute per request instead of serving the cache.
+
+    See node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/cacheComponents.md
+  */
+  cacheComponents: true,
 };
 
 export default nextConfig;

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ImageSlot } from "@/components/motif-field";
 import { PageIntro } from "@/components/page-intro";
-import { COLLECTIONS } from "@/lib/content";
+import { getCollections, getCopy } from "@/lib/content";
 import styles from "./collections.module.css";
 
 export const metadata: Metadata = {
@@ -11,19 +11,17 @@ export const metadata: Metadata = {
     "Jewellery, gemstone pieces, engraved wood, apparel and 3D objects from ISE Studio, grouped into five collections.",
 };
 
-export default function CollectionsPage() {
+export default async function CollectionsPage() {
+  const [collections, copy] = await Promise.all([getCollections(), getCopy()]);
+
   return (
     <main>
-      <PageIntro title="Collections">
-        Five collections, one palette, one set of motifs. Nothing here sells through
-        the site — pieces are made to order and in small runs, so pick what you want
-        and the studio will quote it.
-      </PageIntro>
+      <PageIntro title={copy.collections.title}>{copy.collections.intro}</PageIntro>
 
       <section className="band bandPaper">
         <div className="wrap">
           <ul className={styles.collections}>
-            {COLLECTIONS.map((collection, index) => (
+            {collections.map((collection, index) => (
               <li key={collection.slug} className={styles.collection}>
                 <Link href={`/collections/${collection.slug}`} className={styles.link}>
                   <ImageSlot
@@ -42,7 +40,7 @@ export default function CollectionsPage() {
                   </h2>
                   <p className={styles.blurb}>{collection.intro}</p>
                   <p className={`spec ${styles.count}`}>
-                    {collection.items.length} pieces in this collection
+                    {collection.pieces.length} pieces in this collection
                   </p>
                 </div>
               </li>

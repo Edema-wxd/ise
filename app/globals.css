@@ -165,7 +165,7 @@ svg {
   letter-spacing: -0.01em;
 }
 
-/* Item metadata: material, dimension, collection. Set in the UI face so it
+/* Piece metadata: material, dimension, collection. Set in the UI face so it
    reads as specification rather than prose. */
 .spec {
   font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;

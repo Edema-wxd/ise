@@ -1,17 +1,16 @@
 import Link from "next/link";
-import { NAV, SITE } from "@/lib/content";
+import { getCopy, getNav, getSite } from "@/lib/content";
 import styles from "./site-footer.module.css";
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const [site, nav, copy] = await Promise.all([getSite(), getNav(), getCopy()]);
+
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.prompt}>
-          <h2 className={styles.promptHeading}>Want something made for you?</h2>
-          <p className={styles.promptBody}>
-            Commissions start with a conversation about material, size and how long it
-            takes. Send the idea and the studio will tell you what it needs.
-          </p>
+          <h2 className={styles.promptHeading}>{copy.footer.promptHeading}</h2>
+          <p className={styles.promptBody}>{copy.footer.promptBody}</p>
           <Link href="/contact" className="cta">
             Start a commission
           </Link>
@@ -20,7 +19,7 @@ export function SiteFooter() {
         <div className={styles.details}>
           <nav aria-label="Sections">
             <ul className={styles.list}>
-              {NAV.map((item) => (
+              {nav.map((item) => (
                 <li key={item.href}>
                   <Link href={item.href} className={styles.link}>
                     {item.label}
@@ -32,13 +31,13 @@ export function SiteFooter() {
 
           <ul className={styles.list}>
             <li>
-              <a href={`mailto:${SITE.email}`} className={styles.link}>
-                {SITE.email}
+              <a href={`mailto:${site.email}`} className={styles.link}>
+                {site.email}
               </a>
             </li>
             <li>
               <a
-                href={`https://instagram.com/${SITE.instagram}`}
+                href={`https://instagram.com/${site.instagram}`}
                 className={styles.link}
                 rel="me noreferrer"
                 target="_blank"
@@ -49,7 +48,7 @@ export function SiteFooter() {
           </ul>
 
           <p className={styles.fine}>
-            {SITE.name}, Nigeria. Objects made to order and in small runs.
+            {site.name}, Nigeria. Objects made to order and in small runs.
           </p>
         </div>
       </div>

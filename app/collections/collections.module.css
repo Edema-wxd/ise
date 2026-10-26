@@ -60,7 +60,7 @@
 
 /* ---- Single collection ---- */
 
-.items {
+.pieces {
   display: grid;
   gap: clamp(1.75rem, 3.5vw, 2.75rem);
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
@@ -69,16 +69,16 @@
   list-style: none;
 }
 
-.item {
+.piece {
   min-width: 0;
 }
 
-.itemName {
+.pieceName {
   margin-top: 1rem;
   font-size: var(--size-heading);
 }
 
-.itemSpec {
+.pieceSpec {
   margin-top: 0.4rem;
   color: var(--ink-muted);
 }

@@ -1,24 +1,24 @@
 import { ImageSlot, type Tone } from "@/components/motif-field";
-import type { Item } from "@/lib/content";
-import styles from "./item-photos.module.css";
+import type { Piece } from "@/lib/content";
+import styles from "./piece-photos.module.css";
 
 type Props = {
-  item: Item;
+  piece: Piece;
   tone: Tone;
   sizes: string;
 };
 
 /**
- * An item's photographs. None or one renders a single slot, so an item with
+ * A piece's photographs. None or one renders a single slot, so a piece with
  * no photography yet keeps the motif stand-in. Several render as a row that
  * scrolls sideways and snaps to each shot. Each shot is full width, so the
  * card is the same height as its single-photo neighbours, and carries its own
  * "1 of 3" label that scrolls with it. CSS only: it swipes on touch, scrolls
  * on a trackpad, and takes arrow keys once focused.
  */
-export function ItemPhotos({ item, tone, sizes }: Props) {
-  const photos = item.photos ?? [];
-  const fallback = `${item.name}, ${item.material}`;
+export function PiecePhotos({ piece, tone, sizes }: Props) {
+  const photos = piece.photos ?? [];
+  const fallback = `${piece.name}, ${piece.material}`;
 
   if (photos.length <= 1) {
     return (
@@ -36,7 +36,7 @@ export function ItemPhotos({ item, tone, sizes }: Props) {
     <div className={styles.gallery}>
       {/* Focusable so keyboard users can scroll it; labelled so a screen
           reader announces what the region holds before reading the shots. */}
-      <ul className={styles.track} tabIndex={0} aria-label={`${item.name}, ${photos.length} photos`}>
+      <ul className={styles.track} tabIndex={0} aria-label={`${piece.name}, ${photos.length} photos`}>
         {photos.map((photo, index) => (
           <li key={photo.src} className={styles.shot}>
             <ImageSlot

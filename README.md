@@ -37,32 +37,57 @@ updated to match, or this renamed back.
 
 ## Content
 
-All copy and data live in [lib/content.ts](lib/content.ts), and the pages are
-templates over it. Adding a collection or a project means adding an entry
-there — no new route, and [app/sitemap.ts](app/sitemap.ts) picks it up.
+Content lives in Postgres and the pages are templates over the readers in
+[lib/content.ts](lib/content.ts) — `getCollections()`, `getProjects()`,
+`getEvents()`, `getSite()`, `getNav()`, `getCopy()`. Adding a collection or a
+project means adding an entry in the studio; no new route, and
+[app/sitemap.ts](app/sitemap.ts) picks it up.
 
-**The content in that file is placeholder.** It is written to the brand voice
-and to the right length for each slot, but no claim in it is client-approved.
-Replace it from Discovery before launch.
+Each reader is a `use cache` scope tagged by what it reads
+(`content:collection`, `content:settings:copy`, …), so the public pages still
+prerender and a publish invalidates only the tags it touched. `draftMode()` is
+readable inside those scopes, which is how preview will show drafts on the
+real URLs without making the public pages dynamic.
+
+[lib/content-seed.ts](lib/content-seed.ts) holds the initial copy. It is what
+`npm run db:seed` writes into the database, and the fallback the readers use
+when `DATABASE_URL` is unset or Postgres cannot be reached — so a checkout
+with no env still renders a complete site. Once the database is seeded,
+editing that file changes nothing.
+
+**The seed copy is placeholder.** It is written to the brand voice and to the
+right length for each slot, but no claim in it is client-approved. Replace it
+from Discovery before launch.
 
 ## Database
 
-Custom-order inquiries are written to Neon (serverless Postgres) over HTTP via
-`@neondatabase/serverless` — no connection pool to manage, which suits a site
-that is otherwise entirely static.
+Neon (serverless Postgres) over HTTP via `@neondatabase/serverless` — no
+connection pool to manage. Migrations are re-runnable; apply them with
+`npm run db:migrate`, then `npm run db:seed` on a fresh database.
 
-- Schema: [db/001_inquiries.sql](db/001_inquiries.sql), one `inquiries` table.
-  Migrations are re-runnable; apply them with `npm run db:migrate`.
+| Schema | Holds |
+|---|---|
+| [db/001_inquiries.sql](db/001_inquiries.sql) | `inquiries` — the custom-orders form |
+| [db/002_content.sql](db/002_content.sql) | `content_entries`, `settings`, `content_revisions` — editable content |
+
+Content is one JSON document per entry rather than normalised tables, with
+`draft` and `published` columns side by side. Publishing is then a column copy,
+and a collection's pieces travel with their parent instead of needing their own
+rows and their own reconciliation at publish time. `content_revisions` is
+append-only, for history and rollback. Delete is soft (`deleted_at`).
+
 - Client: [lib/db.ts](lib/db.ts). Returns `null` when `DATABASE_URL` is unset.
-- Write path: [app/contact/actions.ts](app/contact/actions.ts).
+- Write path for inquiries: [app/contact/actions.ts](app/contact/actions.ts).
+- Read path for content: [lib/content.ts](lib/content.ts).
 
 `DATABASE_URL` goes in `.env.local` (gitignored) locally and in the host's
-environment in production. If it is missing, or the insert fails, the form
-does not claim a save — it shows the studio's email address and logs the
-reason server-side. The site keeps serving either way.
+environment in production. If it is missing, or a query fails, nothing claims
+otherwise: the inquiry form shows the studio's email address, the content
+readers fall back to the seed, and both log the reason server-side. The site
+keeps serving either way.
 
-Reading the inbox is `select * from inquiries order by created_at desc` for
-now; nothing notifies the studio of a new row yet.
+The studio reads the inbox at [/studio](app/studio/page.tsx); nothing notifies
+it of a new row yet.
 
 **Before launch: the form has no rate limiting.** Server Actions accept direct
 POSTs, so it is open to automated spam. Add a limiter or put it behind the
@@ -74,8 +99,8 @@ Images are hosted on UploadThing and rendered through `next/image`. The only
 images committed are the brand mark, the favicon set and the link preview
 (see Brand below).
 
-Each collection holds its **items** (the things it makes), and each item takes
-a list of `photos`, shown as a swipeable row when there are several.
+Each collection holds its **pieces** (the things it makes), and each piece
+takes a list of `photos`, shown as a swipeable row when there are several.
 Collections, projects and events take one optional `image`. All of them hold
 UploadThing URLs. Where one is absent, `ImageSlot` renders the studio motif
 at the same aspect ratio, labelled "Photography to come" — so dropping a URL
@@ -163,6 +188,14 @@ Neon Auth is optional at build time. With `NEON_AUTH_BASE_URL` or
 `/studio` redirects to sign-in, `/auth/sign-in` says sign-in is not set up,
 and `/api/auth/*` answers 503. Set both on the host before building, since the
 sign-in page is prerendered.
+
+The custom-orders form is capped per caller and site-wide (`lib/rate-limit.ts`,
+counters in `inquiry_attempts`). An hourly Function Trigger POSTs to
+`/digest` on the inquiries function, which hands every row the studio has not
+seen to `STUDIO_WEBHOOK_URL` and stamps `inquiries.notified_at` only once that
+destination answers 2xx — a destination that is down means the next tick
+retries rather than dropping the inquiry. With no destination configured the
+digest says so and leaves the rows pending.
 
 A studio account is created in the Neon console (Auth > Users), or with the
 Auth API, and then added to `STUDIO_EMAILS`. Being signed in is not enough:

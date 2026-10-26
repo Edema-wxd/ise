@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { PageIntro } from "@/components/page-intro";
-import { NAV } from "@/lib/content";
+import { getNav } from "@/lib/content";
 import styles from "./not-found.module.css";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const nav = await getNav();
+
   return (
     <main>
       <PageIntro title="That page is not here">
@@ -14,7 +16,7 @@ export default function NotFound() {
       <section className="band">
         <div className="wrap">
           <ul className={styles.links}>
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <li key={item.href}>
                 <Link href={item.href} className={styles.link}>
                   {item.label}

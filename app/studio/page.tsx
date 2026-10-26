@@ -11,8 +11,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Reading the session is per request, so this page cannot be prerendered.
-export const dynamic = "force-dynamic";
+/*
+  Nothing on this page can render before the session is known, so there is no
+  useful static shell to stream: the route blocks on `cookies()` by design.
+  `instant = false` tells Cache Components that, instead of asking for the
+  session read to be wrapped in Suspense or cached — neither of which is right
+  for an auth gate.
+*/
+export const instant = false;
 
 /**
  * The studio's view of what came through the custom-orders form.
