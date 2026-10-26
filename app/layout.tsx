@@ -21,10 +21,10 @@ const title = "Ìṣẹ́ — We are building";
 const description = "Ìṣẹ́ is being built. Work is the cure for want.";
 
 export const metadata: Metadata = {
-  // Shared-link images need an absolute URL. Vercel supplies its deployment
-  // URL on its own; anywhere else, set SITE_URL (e.g. https://example.com)
-  // when building, since the page is prerendered.
-  metadataBase: process.env.SITE_URL ? new URL(process.env.SITE_URL) : undefined,
+  // Shared-link images need an absolute URL. The bare domain redirects to www,
+  // so www is canonical; SITE_URL overrides it at build time, since the page
+  // is prerendered. Vercel preview deployments use their own URL regardless.
+  metadataBase: new URL(process.env.SITE_URL ?? "https://www.isestudiong.com"),
   title,
   description,
   // The image itself comes from app/opengraph-image.png.

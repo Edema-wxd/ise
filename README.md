@@ -15,9 +15,11 @@ access.
 
 ## Deploying
 
-On Vercel, import the repo and deploy, no settings needed. Anywhere else, set
-`SITE_URL` to the public address when building, so shared links resolve their
-preview image. The page is prerendered, so setting it only at start is too late:
+Production is on Vercel at https://www.isestudiong.com (the bare domain
+redirects there; also https://ise-beryl.vercel.app). Shared links point their
+preview image at the www domain. To host it elsewhere, set `SITE_URL` to the
+public address when building. The page is prerendered, so setting it only at
+start is too late:
 
 ```bash
 SITE_URL=https://example.com npm run build
