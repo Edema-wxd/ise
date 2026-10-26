@@ -129,7 +129,9 @@ function NavMenu({
         onClick={() => setOpenOn(open ? null : pathname)}
       >
         {item.label}
-        <span aria-hidden="true" className={styles.chevron} />
+        <svg aria-hidden="true" className={styles.chevron} viewBox="0 0 12 12">
+          <path d="M2.5 4.5 6 8l3.5-3.5" />
+        </svg>
       </button>
       <ul id={panelId} className={styles.panel} hidden={!open}>
         {item.children?.map((child) => (

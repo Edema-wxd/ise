@@ -11,9 +11,10 @@ type Props = {
 /**
  * An item's photographs. None or one renders a single slot, so an item with
  * no photography yet keeps the motif stand-in. Several render as a row that
- * scrolls sideways and snaps to each shot, with the next one peeking in so
- * there is visibly more. CSS only: it swipes on touch, scrolls on a trackpad,
- * and takes arrow keys once focused.
+ * scrolls sideways and snaps to each shot. Each shot is full width, so the
+ * card is the same height as its single-photo neighbours, and carries its own
+ * "1 of 3" label that scrolls with it. CSS only: it swipes on touch, scrolls
+ * on a trackpad, and takes arrow keys once focused.
  */
 export function ItemPhotos({ item, tone, sizes }: Props) {
   const photos = item.photos ?? [];
@@ -45,12 +46,14 @@ export function ItemPhotos({ item, tone, sizes }: Props) {
               shape="tall"
               sizes={sizes}
             />
+            {/* The alt text already numbers the shot for screen readers. */}
+            <span className={styles.count} aria-hidden="true">
+              {index + 1} of {photos.length}
+              {index === 0 ? " · swipe" : ""}
+            </span>
           </li>
         ))}
       </ul>
-      <p className={`spec ${styles.count}`} aria-hidden="true">
-        {photos.length} photos, swipe for more
-      </p>
     </div>
   );
 }
