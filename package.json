@@ -16,7 +16,7 @@
     "@neondatabase/auth": "^0.6.0-beta",
     "@neondatabase/serverless": "^1.2.0",
     "jose": "^6.2.13",
-    "next": "^16.3.2",
+    "next": "^16.4.3",
     "pg": "^8.23.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

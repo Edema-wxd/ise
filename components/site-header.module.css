@@ -15,7 +15,7 @@
   padding: 0.9rem var(--gutter);
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 0.5rem 2rem;
 }
@@ -29,9 +29,14 @@
 
 .logo {
   /* Caps the mark's height whatever the delivered file measures, and keeps the
-     clear space the brand guide asks for. */
-  height: clamp(1.5rem, 4vw, 2rem);
-  width: auto;
+     clear space the brand guide asks for. The hand-drawn detail fills in
+     below about 3rem, so it does not go smaller. */
+  display: block;
+  height: clamp(3.25rem, 9vw, 4.5rem);
+  background-color: var(--paper);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
 }
 
 .nav {

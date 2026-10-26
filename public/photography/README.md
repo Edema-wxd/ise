@@ -12,8 +12,11 @@ photography, use UploadThing.
 1. Upload it in the UploadThing dashboard. No app configuration is needed for
    this — the in-app upload route stays closed by default.
 2. Copy the file URL.
-3. Paste it into the matching entry in [`lib/content.ts`](../../lib/content.ts)
-   as `image`:
+3. Set it as `image` on the matching entry. Content lives in Postgres
+   (`content_entries`, see the main README), so that means the entry's draft
+   payload, then publish; the studio editor for this is Phase 4 of
+   [`docs/admin-plan.md`](../../docs/admin-plan.md). Before the database is
+   seeded, edit [`lib/content-seed.ts`](../../lib/content-seed.ts) instead:
 
 ```ts
 { name: "Wide cuff", material: "Cast brass", dimension: "58 mm inner, 24 mm face",

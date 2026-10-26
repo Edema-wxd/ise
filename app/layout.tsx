@@ -76,6 +76,8 @@ export async function generateMetadata(): Promise<Metadata> {
       title: site.name,
       description: site.tagline,
     },
+    // The image itself comes from app/opengraph-image.png.
+    twitter: { card: "summary_large_image" },
   };
 }
 
