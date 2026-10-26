@@ -1,21 +1,24 @@
 import Link from "next/link";
 import { ImageSlot, MotifField } from "@/components/motif-field";
-import { COLLECTIONS, EVENTS, PROJECTS, eventMeta } from "@/lib/content";
+import { getCollections, getCopy, getEvents, getProjects, eventMeta } from "@/lib/content";
 import styles from "./page.module.css";
 
-export default function HomePage() {
-  const featured = PROJECTS.slice(0, 3);
+export default async function HomePage() {
+  const [collections, projects, events, copy] = await Promise.all([
+    getCollections(),
+    getProjects(),
+    getEvents(),
+    getCopy(),
+  ]);
+
+  const featured = projects.slice(0, 3);
 
   return (
     <main>
       <section className={styles.hero}>
         <div className={styles.heroText}>
-          <h1>Brass, hardwood and cotton, worked in Nigeria.</h1>
-          <p className={`lead ${styles.heroLead}`}>
-            ISE Studio is an industrial design practice making jewellery, accessories,
-            apparel and objects for the room. Everything starts as a drawing and ends
-            on a bench.
-          </p>
+          <h1>{copy.home.heroHeading}</h1>
+          <p className={`lead ${styles.heroLead}`}>{copy.home.heroLead}</p>
           <div className={styles.heroActions}>
             <Link href="/collections" className="cta">
               See the collections
@@ -31,9 +34,9 @@ export default function HomePage() {
 
       <section className="band bandPaper">
         <div className="wrap">
-          <h2>What the studio makes</h2>
+          <h2>{copy.home.collectionsHeading}</h2>
           <ul className={styles.collections}>
-            {COLLECTIONS.map((collection) => (
+            {collections.map((collection) => (
               <li key={collection.slug} className={styles.collection}>
                 <Link href={`/collections/${collection.slug}`} className={styles.collectionLink}>
                   <ImageSlot
@@ -54,7 +57,7 @@ export default function HomePage() {
 
       <section className="band bandPeach">
         <div className="wrap">
-          <h2>Projects, and how they got made</h2>
+          <h2>{copy.home.projectsHeading}</h2>
           <ul className={styles.projects}>
             {featured.map((project) => (
               <li key={project.slug} className={styles.project}>
@@ -75,9 +78,9 @@ export default function HomePage() {
 
       <section className="band">
         <div className="wrap">
-          <h2>Where to see the work</h2>
+          <h2>{copy.home.eventsHeading}</h2>
           <ul className={styles.events}>
-            {EVENTS.map((event) => (
+            {events.map((event) => (
               <li key={event.title} className={styles.event}>
                 <h3>{event.title}</h3>
                 <p className={`spec ${styles.eventSpec}`}>{eventMeta(event)}</p>

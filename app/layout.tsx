@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Alegreya, Bodoni_Moda, Space_Grotesk } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { SITE } from "@/lib/content";
+import { getLogo, getNav, getSite } from "@/lib/content";
 import "./globals.css";
 
 /*
@@ -54,30 +54,43 @@ const body = Alegreya({
   variable: "--font-body",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE.url),
-  title: {
-    default: `${SITE.name} — ${SITE.tagline}`,
-    template: `%s — ${SITE.name}`,
-  },
-  description: SITE.tagline,
-  openGraph: {
-    type: "website",
-    siteName: SITE.name,
-    url: SITE.url,
-    title: SITE.name,
-    description: SITE.tagline,
-  },
-};
+/* Cached rather than static, because the title and description are now the
+   studio's to edit. `use cache` keeps the pages prerenderable; a publish in
+   the studio invalidates the tag the reader carries. */
+export async function generateMetadata(): Promise<Metadata> {
+  "use cache";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const site = await getSite();
+
+  return {
+    metadataBase: new URL(site.url),
+    title: {
+      default: `${site.name} — ${site.tagline}`,
+      template: `%s — ${site.name}`,
+    },
+    description: site.tagline,
+    openGraph: {
+      type: "website",
+      siteName: site.name,
+      url: site.url,
+      title: site.name,
+      description: site.tagline,
+    },
+  };
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  /* The header is a client component, so what it needs is read here and
+     handed down rather than imported there. */
+  const [site, nav, logo] = await Promise.all([getSite(), getNav(), getLogo()]);
+
   return (
     <html
       lang="en"
       className={`${display.variable} ${ui.variable} ${body.variable}`}
     >
       <body>
-        <SiteHeader />
+        <SiteHeader siteName={site.name} nav={nav} logo={logo} />
         {children}
         <SiteFooter />
       </body>

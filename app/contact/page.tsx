@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageIntro } from "@/components/page-intro";
-import { SITE } from "@/lib/content";
+import { getCopy, getSite } from "@/lib/content";
 import { InquiryForm } from "./inquiry-form";
 import styles from "./contact.module.css";
 
@@ -10,14 +10,12 @@ export const metadata: Metadata = {
     "Commission a piece from ISE Studio, or get in touch about stockists, press and collaborations.",
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const [site, copy] = await Promise.all([getSite(), getCopy()]);
+
   return (
     <main>
-      <PageIntro title="Custom orders">
-        Most of what the studio makes starts as somebody&rsquo;s specific idea. Bring
-        the idea, a size, and a rough deadline, and you will get a price and a
-        timeline back.
-      </PageIntro>
+      <PageIntro title={copy.contact.title}>{copy.contact.intro}</PageIntro>
 
       <section className="band bandPaper">
         <div className={`wrap ${styles.layout}`}>
@@ -31,18 +29,18 @@ export default function ContactPage() {
             </p>
             <ul className={styles.contacts}>
               <li>
-                <a href={`mailto:${SITE.email}`} className={styles.contactLink}>
-                  {SITE.email}
+                <a href={`mailto:${site.email}`} className={styles.contactLink}>
+                  {site.email}
                 </a>
               </li>
               <li>
                 <a
-                  href={`https://instagram.com/${SITE.instagram}`}
+                  href={`https://instagram.com/${site.instagram}`}
                   className={styles.contactLink}
                   rel="me noreferrer"
                   target="_blank"
                 >
-                  @{SITE.instagram} on Instagram
+                  @{site.instagram} on Instagram
                 </a>
               </li>
             </ul>

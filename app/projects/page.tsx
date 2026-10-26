@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ImageSlot, toneAt } from "@/components/motif-field";
 import { PageIntro } from "@/components/page-intro";
-import { PROJECTS } from "@/lib/content";
+import { getCopy, getProjects } from "@/lib/content";
 import styles from "./projects.module.css";
 
 export const metadata: Metadata = {
@@ -11,18 +11,17 @@ export const metadata: Metadata = {
     "Design projects from ISE Studio, with the brief, the process and what came out of it.",
 };
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const [projects, copy] = await Promise.all([getProjects(), getCopy()]);
+
   return (
     <main>
-      <PageIntro title="Projects">
-        Longer pieces of work, written up with the part that usually gets left out:
-        what did not work first.
-      </PageIntro>
+      <PageIntro title={copy.projects.title}>{copy.projects.intro}</PageIntro>
 
       <section className="band bandPaper">
         <div className="wrap">
           <ul className={styles.list}>
-            {PROJECTS.map((project, index) => (
+            {projects.map((project, index) => (
               <li key={project.slug} className={styles.item}>
                 <Link href={`/projects/${project.slug}`} className={styles.media}>
                   <ImageSlot

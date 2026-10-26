@@ -1,7 +1,7 @@
 "use server";
 
 import { getSql } from "@/lib/db";
-import { SITE } from "@/lib/content";
+import { getSite } from "@/lib/content";
 import type { InquiryState, InquiryValues } from "./inquiry";
 
 const KINDS = new Set(["commission", "general"]);
@@ -66,12 +66,14 @@ export async function sendInquiry(
     return { status: "invalid", key, values, errors, message: "" };
   }
 
+  const site = await getSite();
+
   const undelivered = {
     status: "undelivered" as const,
     key,
     values,
     errors: {},
-    message: `That did not save. Email ${SITE.email} and the studio will pick it up.`,
+    message: `That did not save. Email ${site.email} and the studio will pick it up.`,
   };
 
   const sql = getSql();
