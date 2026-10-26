@@ -16,12 +16,13 @@ they live in [`docs/brand/`](../../docs/brand/) where they are not served.
 
 ## How the logo is shown
 
-`LOGO` in [`lib/content.ts`](../../lib/content.ts) points at `logo.svg` with
-its real dimensions. The header is eggplant, where black line art disappears,
+The `logo` setting (seeded from `LOGO` in
+[`lib/content-seed.ts`](../../lib/content-seed.ts), editable in the studio)
+points at `logo.svg` with its real dimensions. The header is eggplant, where black line art disappears,
 so [`site-header.tsx`](../../components/site-header.tsx) uses the file as a
 CSS mask filled with the `--paper` token. The file is shown exactly as drawn
 and never edited; the brand sheet itself shows the mark in palette colours.
-Setting `LOGO` to `null` returns the header to the wordmark in type.
+Setting the logo to `null` returns the header to the wordmark in type.
 
 ## Favicon and app icons
 

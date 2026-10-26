@@ -1,8 +1,7 @@
 # Admin dashboard — build plan
 
-Status: planned, not started. Written 2026-10-21; auth revised 2026-10-26 to
-use Neon Auth, which the site already runs for `/studio`, instead of a
-hand-built login.
+Status: Phases 1–3 built. Written 2026-10-21, revised 2026-10-22 after the
+stack changed under it (see Decisions).
 
 An authenticated admin at `/admin` that (a) edits every piece of copy and data
 on the public site, with a draft/published split, and (b) reads and works the
@@ -20,15 +19,23 @@ Still out of scope, unchanged: cart, checkout, Shopify, inventory, ad pixels.
 
 ## Decisions (locked)
 
+Revised 2026-10-22. The auth, inbox and media decisions below are **not** the
+ones first written here: a parallel session built the auth layer and the inbox
+on Neon's own primitives before this plan was executed, and that work was
+adopted rather than replaced. What it changed is marked.
+
 | Decision | Choice |
 |---|---|
-| Content store | Postgres (Neon), already wired for inquiries |
-| Accounts | **Allowlisted Neon Auth accounts.** No signup route; accounts are created in the Neon console (Auth > Users) and named in `STUDIO_EMAILS` |
-| Versioning | **Draft vs published**, per entry, with a revision log and rollback |
-| Hosting | **Vercel**, custom domain pointed at it |
-| Auth mechanism | **Neon Auth** (Managed Better Auth), already guarding `/studio`. Passwords, sessions and sign-in throttling are Neon's, not ours |
-| Media | Deferred to Phase 5. On Vercel, Vercel Blob rather than Neon Object Storage: one env var, and `next/image` serves it off the same CDN |
-| New runtime deps | `zod` only (form validation + parsing jsonb at the DB boundary). `@vercel/blob` at Phase 5 |
+| Content store | Postgres (Neon) |
+| Accounts | Single account. No signup route. Enforced by the `STUDIO_EMAILS` allowlist: an account that is not listed can sign in and is still refused |
+| Versioning | Draft vs published, per entry, with a revision log and rollback |
+| Auth mechanism | **Changed.** Neon Auth (Managed Better Auth) in [lib/auth/server.ts](../lib/auth/server.ts), not hand-rolled scrypt sessions. Users and sessions live in the `neon_auth` schema and branch with the database |
+| Admin location | **Changed.** `/studio`, with sign-in at `/auth/sign-in`. Not `/admin` |
+| Inbox read path | **Changed.** A Neon Function ([functions/inquiries.ts](../functions/inquiries.ts)), not direct SQL from the app |
+| Media | **Changed.** UploadThing, already wired and closed by default, not Vercel Blob |
+| Hosting | **Open.** Vercel was chosen for the app, but the inbox Function and auth deploy through `neon deploy`. Two pipelines for one feature; worth settling before launch |
+| Content naming | **Changed.** `products` is now `collections` throughout |
+| New runtime deps | None added by this plan. `zod` was planned and not needed: the jsonb boundary is checked by hand-written guards in [lib/content.ts](../lib/content.ts) |
 
 ## Architecture
 
@@ -87,26 +94,33 @@ dynamic routes either does the same or is dropped in favour of on-demand
 rendering (`dynamicParams` defaults to true, so an unknown slug renders rather
 than 404s). Dropping it is simpler and costs one cold render per new slug.
 
-### Admin is a separate route group
+### The admin is at /studio, inside the site's layout
 
-`app/(admin)/admin/*` with its own layout: no `SiteHeader`/`SiteFooter`,
-uncached, `robots: noindex`, excluded from the sitemap.
+`/studio` is a normal route under the root layout, so it carries the public
+header and footer. That was the parallel session's choice and it is left
+alone; a separate chrome-free route group is a Phase 6 tidy-up, not a
+correctness problem.
 
-Guarding is two layers, per Next's own auth guidance:
+Guarding is two layers, which the existing code already gets right:
 
-1. `proxy.ts` (Next 16, `middleware.ts` is deprecated), its matcher extended
-   from `/studio/:path*` to `/admin/:path*`. Neon Auth's middleware redirects a
-   visitor with no session to `/auth/sign-in`, the same page `/studio` uses.
-2. `requireAdmin()` in `lib/auth/server.ts`, next to `getAuth()`, called by
-   every admin page **and** every mutation action. It reads the session with
-   `getAuth().getSession()`, then checks the account's email against
-   `STUDIO_EMAILS`, because Neon Auth will create an account for anyone who
-   posts to its sign-up endpoint. This is the actual boundary; the proxy check
-   is an optimistic redirect and nothing more.
+1. [proxy.ts](../proxy.ts) (Next 16 — `middleware.ts` is deprecated) matching
+   `/studio/:path*`, doing the optimistic cookie redirect to `/auth/sign-in`.
+2. The session read again inside the page before it reads a row. This is the
+   actual boundary; the proxy check is a redirect and nothing more.
 
-With Neon Auth unconfigured, `getAuth()` returns null and `requireAdmin()`
-refuses every request, the same way `/studio` does today, so the public site
-still builds and serves.
+Every mutation added in Phase 4 re-reads the session the same way, in the
+action, not in a layout.
+
+Because the whole page blocks on `cookies()`, `/studio` carries
+`export const instant = false` — there is no useful static shell for a page
+that cannot render before it knows who is asking.
+
+Neon Auth is optional at build time: `getAuth()` in
+[lib/auth/server.ts](../lib/auth/server.ts) returns null when
+`NEON_AUTH_BASE_URL` or `NEON_AUTH_COOKIE_SECRET` is unset. The proxy and
+`/studio` then redirect to `/auth/sign-in`, which says sign-in is not set up,
+and the public site still builds and serves. Every Phase 4 action must treat a
+null `getAuth()` as "refuse", the same way.
 
 ### Admin look
 
@@ -119,104 +133,115 @@ avoids a heavy dependency and a sanitisation problem.
 
 ## Schema
 
-`db/002_admin.sql`
-- `audit_log` — user_id (the Neon Auth user id, `neon_auth.user.id`), action,
-  target, created_at
+Shipped in [db/002_content.sql](../db/002_content.sql):
 
-No account, session or login-attempt tables: Neon Auth keeps users and
-sessions in the branch's own `neon_auth` schema.
+- `content_entries` — id, kind (`collection` | `project` | `event`), slug,
+  sort_order, `draft` jsonb, `published` jsonb, published_at, updated_at,
+  deleted_at. Unique on (kind, slug).
+- `settings` — key primary key, `draft`, `published`, published_at,
+  updated_at. Four keys seeded: `site`, `nav`, `logo`, `copy`. `copy` holds
+  the home hero and section headings, the footer prompt, and each index
+  page's intro — all of which used to be written into JSX.
+- `content_revisions` — append-only: target (`entry:<id>` / `settings:<key>`),
+  action, payload, actor (email from the session, as text), created_at.
 
-`db/003_content.sql`
-- `content_entries` — id, type (`category` | `project` | `event`), slug,
-  sort_order, draft jsonb, published jsonb, published_at, updated_at,
-  deleted_at; unique on (type, slug)
-- `settings` — key text primary key, draft jsonb, published jsonb,
-  published_at, updated_at. Holds `SITE`, `NAV`, the logo reference, the home
-  hero copy and the section headings currently hardcoded in `app/page.tsx`
-- `content_revisions` — append-only: entry ref, payload, action, admin_id,
-  created_at
-
-`db/004_inquiries_status.sql`
-- adds `status` (`new` | `read` | `replied` | `archived`), `notes`, `read_at`
-  to `inquiries`
-
-Migrations stay re-runnable (`if not exists`, `add column if not exists`) —
-`scripts/migrate.mjs` has no ledger.
+Not built, and no longer planned: `admins`, `admin_sessions`,
+`login_attempts`. Neon Auth owns users and sessions in the `neon_auth` schema.
+An `audit_log` table is also unnecessary — `content_revisions` records who
+changed what, which is what it was for.
 
 ## Security
 
-- password hashing, session issue and expiry, and sign-in rate limiting are
-  Neon Auth's (Better Auth underneath). Confirm its rate-limit settings in the
-  Neon console before launch rather than building our own
-- the session cookie is signed with `NEON_AUTH_COOKIE_SECRET` (32 characters
-  or more). Leave the `cookies.domain` option unset so the cookie stays
-  host-only and a preview deployment can't present a production cookie
-- authorization is the `STUDIO_EMAILS` allowlist, checked on every admin
-  request against `neon_auth.user`, never a claim from the token
-- before launch, follow Neon's production checklist: register the production
-  domain (`neon neon-auth domain add`) and move off the shared SMTP sender
-- Server Actions carry Next's built-in origin check, so no separate CSRF token
-- every mutation writes to `audit_log`
-- enabling draft mode goes through `requireAdmin()` — the preview route is not
-  a public bypass
+Handled by the adopted layer:
 
-## Vercel notes
+- Neon Auth owns password hashing, sessions and the cookie. `NEON_AUTH_COOKIE_SECRET` is ours and must be 32+ characters.
+- `STUDIO_EMAILS` is the single-account allowlist; `STUDIO_ORIGINS` is the Function's CORS list, and needs the deployed origin before launch.
+- Server Actions carry Next's built-in origin check, so no separate CSRF token.
+- The UploadThing route is closed unless `UPLOADTHING_UPLOAD_SECRET` is set.
 
-- Node runtime (required by Cache Components); nothing may set `runtime = 'edge'`
-- `revalidateTag` propagates across the fleet via Vercel's cache
-- Env: `DATABASE_URL`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET` and
-  `STUDIO_EMAILS` per environment, `BLOB_READ_WRITE_TOKEN` from Phase 5. Neon
-  Auth state branches with the database, so a preview pointed at a Neon branch
-  gets that branch's accounts
-- **Point preview deployments at a Neon branch**, not production. Otherwise an
-  edit made from a preview URL publishes to the live site
-- Draft mode's `__prerender_bypass` cookie is regenerated on every build, so a
-  preview session ends at the next deploy. Expected, worth telling the client
+Still ours to do:
+
+- Every Phase 4 mutation re-reads the session and writes a `content_revisions` row with the actor.
+- Enabling draft mode must sit behind the same session check — the preview route is not a public bypass.
+- Rate limiting on the public inquiry form (Phase 6). Still the standing pre-launch blocker.
+
+## Hosting notes
+
+- Node runtime throughout. Cache Components requires it; nothing may set `runtime = 'edge'`.
+- `revalidateTag` must propagate across instances. It does on Vercel; confirm it for whatever serves the app if that changes.
+- Env: `DATABASE_URL` and `DATABASE_URL_UNPOOLED` (writes and migrations), `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET`, `NEON_FUNCTION_INQUIRIES_BASE_URL`, `STUDIO_EMAILS`, `STUDIO_ORIGINS`, and the UploadThing variables. Most are written by `neon env pull`.
+- **Point previews at a Neon branch**, not production. Otherwise an edit made from a preview URL publishes to the live site. Auth state branches with the database, so this also keeps preview sessions separate.
+- Draft mode's `__prerender_bypass` cookie is regenerated on every build, so a preview session ends at the next deploy. Expected; worth telling the client.
+- Two deploy targets right now (the Next app, and `neon deploy` for the Function and auth). Settle this before launch.
 
 ## Phases
 
-### 1 — Auth foundation
-Mostly in place already: Neon Auth, `getAuth()`, `/auth/sign-in` and sign-out
-all exist for `/studio`. What is left is `db/002_admin.sql` (the audit log),
-`requireAdmin()` with the `STUDIO_EMAILS` check, and extending the `proxy.ts`
-matcher to `/admin`. Accounts are made in the Neon console, not from a script.
+### 1 — Auth foundation — **done, by another route**
+Neon Auth, `/auth/sign-in`, the `proxy.ts` guard on `/studio`, and the
+`STUDIO_EMAILS` allowlist. The planned scrypt-and-session-rows build was
+dropped as duplicate work.
 
-### 2 — Contacts inbox
-Highest value, zero risk to the public site. `db/004_inquiries_status.sql`,
-then `/admin` lands on the inbox: keyset-paginated newest-first list, filter by
-kind and status, detail view, mark read/replied/archived, internal notes,
-`mailto:` reply, CSV export, delete. Retires the README's "reading the inbox is
-a `select *` for now" and the open TODO about nothing notifying the studio — an
-unread count first, email only if wanted.
+### 2 — Contacts inbox — **done, by another route**
+[app/studio/page.tsx](../app/studio/page.tsx) and
+[app/studio/inbox.tsx](../app/studio/inbox.tsx), reading through
+[functions/inquiries.ts](../functions/inquiries.ts).
 
-### 3 — Content read layer
-`db/003_content.sql`; a seed script generated *from* the current
-`lib/content.ts` so today's placeholder copy moves across verbatim; readers
-with `use cache` + `cacheTag` + draft-mode branch; pages, metadata and sitemap
-switched over; `cacheComponents: true`. Verify against the build output that
-every public route still prerenders. No visible change to the site.
+Not yet built, and still wanted: filter by kind, status
+(`new`/`read`/`replied`/`archived`), internal notes, CSV export, delete, and
+an unread count. Those need the `db/004_inquiries_status.sql` columns from the
+original plan. Folded into Phase 4b.
+
+### 3 — Content read layer — **done**
+- [db/002_content.sql](../db/002_content.sql) — the three tables.
+- [lib/content-seed.ts](../lib/content-seed.ts) — today's copy, verbatim, plus
+  the page copy lifted out of the JSX of six components.
+- [lib/content.ts](../lib/content.ts) — types, cached readers, and
+  hand-written guards for the jsonb boundary. A malformed entry is dropped and
+  logged rather than rendered half-built.
+- [scripts/seed-content.mjs](../scripts/seed-content.mjs) — insert-only, so it
+  can never overwrite a studio edit. `npm run db:seed`.
+- `cacheComponents: true`, and every consumer switched over: the root layout,
+  header (now takes nav, logo and name as props, being a client component),
+  footer, 404, home, both index pages, both detail pages, the contact page and
+  action, and the sitemap.
+
+Verified: `next build` exits 0, the public pages still prerender, and a value
+changed directly in Postgres appears in the prerendered HTML — so the pages
+read the database, not the seed.
 
 ### 4 — Editors and publishing
-The largest phase, roughly double what it would be without versioning. One
-data-driven form component over per-type field metadata rather than a bespoke
-page each: site settings, home copy, nav, categories and their objects,
-projects and their sections, events. Save draft / Publish / Unpublish /
-Revert, revision history with rollback, reorder via `sort_order`, soft delete
-and restore. A `/admin/preview` route handler that enables draft mode behind
-`requireAdmin()` plus an "exit preview" bar on the public site.
+The largest phase. One data-driven form over per-type field metadata rather
+than a bespoke page each: site settings, nav, page copy, collections and their
+pieces, projects and their sections, events. Save draft / Publish / Unpublish
+/ Revert, revision history with rollback, reorder via `sort_order`, soft
+delete and restore. Every mutation re-reads the session, writes a
+`content_revisions` row, and calls `revalidateTag` for the tags it touched.
+A preview route that enables draft mode behind the session check, plus an
+"exit preview" bar.
+
+Set `cacheLife` on the content readers in this phase. They currently take the
+default profile (15m revalidate); once publishing invalidates by tag, a long
+life is the better fit.
+
+### 4b — The rest of the text, and the inbox columns
+Copy still written into components: the contact page's aside and commission
+steps, the collection page's "Want one of these?" block, the 404 copy, and
+the per-page meta descriptions. Plus the inbox status columns from Phase 2.
 
 ### 5 — Media
-Vercel Blob, upload UI, **required** alt text (an on-page SEO deliverable),
-`next/image` wiring, and `ImageSlot` falling back to the motif only where no
-image is set.
+UploadThing is already wired and closed by default. This phase opens it behind
+the studio session, adds the uploader and **required** alt text (an on-page
+SEO deliverable), and fills the `image` field that every piece, collection,
+project and event already carries.
 
 ### 6 — Hardening and launch
-Rate limiting on the public inquiry form — the standing pre-launch blocker in
-`app/contact/actions.ts`. Neon branch for previews. A backup/restore routine
-for `content_entries` and `settings`: once content lives only in Postgres, the
-repo is no longer the backup. Audit log surfaced in the UI. Accessibility pass,
-mobile and tablet pass on the admin. README and docs updated. Domain, env and
-deploy checklist.
+Rate limiting on the public inquiry form — the standing pre-launch blocker.
+Neon branch for previews. Backup and restore for `content_entries` and
+`settings`: once content lives only in Postgres, the repo is no longer the
+backup. Settle the two-deploy-target question. Accessibility and mobile passes
+on the studio. Decide whether `/studio` moves to a chrome-free route group.
+Silence or explain the `HANGING_PROMISE_REJECTION` log noise `/studio` emits
+during prerender validation (non-fatal; the build exits 0).
 
 ## Open items
 

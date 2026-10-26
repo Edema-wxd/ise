@@ -1,30 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ImageSlot, toneAt } from "@/components/motif-field";
+import { PiecePhotos } from "@/components/piece-photos";
+import { toneAt } from "@/components/motif-field";
 import { PageIntro } from "@/components/page-intro";
-import { COLLECTIONS } from "@/lib/content";
+import { getCollection, getCollectionParams, getCollections } from "@/lib/content";
 import styles from "../collections.module.css";
 
 /*
   One template for every collection, per the build conventions. Adding a
-  collection means adding an entry to COLLECTIONS — no new route, no new
+  collection means adding an entry in the studio — no new route, no new
   component.
 */
 
-function findCollection(slug: string) {
-  return COLLECTIONS.find((collection) => collection.slug === slug);
-}
-
-export function generateStaticParams() {
-  return COLLECTIONS.map((collection) => ({ collection: collection.slug }));
-}
+export const generateStaticParams = getCollectionParams;
 
 export async function generateMetadata(
   props: PageProps<"/collections/[collection]">,
 ): Promise<Metadata> {
+  "use cache";
+
   const { collection: slug } = await props.params;
-  const collection = findCollection(slug);
+  const collection = await getCollection(slug);
 
   if (!collection) return {};
 
@@ -36,13 +33,16 @@ export async function generateMetadata(
 
 export default async function CollectionPage(props: PageProps<"/collections/[collection]">) {
   const { collection: slug } = await props.params;
-  const collection = findCollection(slug);
+  const [collection, collections] = await Promise.all([
+    getCollection(slug),
+    getCollections(),
+  ]);
 
   if (!collection) notFound();
 
   // The collection keeps its own tone for the first piece, then walks the
   // palette, so a row of four pieces is not four identical blocks.
-  const offset = COLLECTIONS.indexOf(collection);
+  const offset = collections.indexOf(collection);
 
   return (
     <main>
@@ -53,11 +53,9 @@ export default async function CollectionPage(props: PageProps<"/collections/[col
           <ul className={styles.pieces}>
             {collection.pieces.map((piece, index) => (
               <li key={piece.name} className={styles.piece}>
-                <ImageSlot
-                  describes={`${piece.name}, ${piece.material}`}
-                  src={piece.image}
+                <PiecePhotos
+                  piece={piece}
                   tone={toneAt(offset + index)}
-                  shape="tall"
                   sizes="(min-width: 64rem) 25vw, (min-width: 40rem) 50vw, 100vw"
                 />
                 <h2 className={styles.pieceName}>{piece.name}</h2>
@@ -81,7 +79,7 @@ export default async function CollectionPage(props: PageProps<"/collections/[col
           </div>
 
           <Link href="/collections" className={styles.back}>
-            All {COLLECTIONS.length} collections
+            All {collections.length} collections
           </Link>
         </div>
       </section>

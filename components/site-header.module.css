@@ -75,6 +75,95 @@
   border-bottom-color: var(--coral);
 }
 
-.link[aria-current="page"] {
+.link[aria-current="page"],
+.current {
   border-bottom-color: var(--brick);
+}
+
+/* ---- Collections menu ---- */
+
+.menu {
+  position: relative;
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding-inline: 0;
+  color: inherit;
+  background: none;
+  border-top: 0;
+  border-inline: 0;
+  cursor: pointer;
+}
+
+.chevron {
+  width: 0.75em;
+  height: 0.75em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 160ms ease;
+}
+
+.menuButton[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 16rem;
+  max-width: calc(100vw - 2 * var(--gutter));
+  margin: 0;
+  padding: 0.5rem 0;
+  list-style: none;
+  background-color: var(--eggplant);
+  border: 1px solid var(--paper-rule);
+  border-top: 2px solid var(--brick);
+}
+
+/* `hidden` loses to `display: grid` above without this. */
+.panel[hidden] {
+  display: none;
+}
+
+/* On a wide header the nav sits right, so the panel opens leftward and stays
+   on screen. */
+@media (min-width: 46rem) {
+  .panel {
+    left: auto;
+    right: 0;
+  }
+}
+
+.panelLink {
+  display: block;
+  padding: 0.6rem 1.1rem;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-body);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+.panelLink:hover,
+.panelLink:focus-visible {
+  color: var(--coral);
+  border-left-color: var(--coral);
+}
+
+.panelLink[aria-current="page"] {
+  border-left-color: var(--brick);
 }

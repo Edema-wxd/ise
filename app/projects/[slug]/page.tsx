@@ -3,23 +3,26 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ImageSlot, toneAt } from "@/components/motif-field";
 import { PageIntro } from "@/components/page-intro";
-import { PROJECTS } from "@/lib/content";
+import { getProjectParams, getProjects } from "@/lib/content";
 import styles from "../projects.module.css";
 
-function findProject(slug: string) {
-  const index = PROJECTS.findIndex((project) => project.slug === slug);
-  return index === -1 ? null : { project: PROJECTS[index], index };
+/** The index is part of what is looked up: the page walks the palette by
+ *  position, so a project needs to know where in the list it sits. */
+async function findProject(slug: string) {
+  const projects = await getProjects();
+  const index = projects.findIndex((project) => project.slug === slug);
+  return index === -1 ? null : { project: projects[index], index };
 }
 
-export function generateStaticParams() {
-  return PROJECTS.map((project) => ({ slug: project.slug }));
-}
+export const generateStaticParams = getProjectParams;
 
 export async function generateMetadata(
   props: PageProps<"/projects/[slug]">,
 ): Promise<Metadata> {
+  "use cache";
+
   const { slug } = await props.params;
-  const found = findProject(slug);
+  const found = await findProject(slug);
 
   if (!found) return {};
 
@@ -31,7 +34,7 @@ export async function generateMetadata(
 
 export default async function ProjectPage(props: PageProps<"/projects/[slug]">) {
   const { slug } = await props.params;
-  const found = findProject(slug);
+  const found = await findProject(slug);
 
   if (!found) notFound();
 

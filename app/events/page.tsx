@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ImageSlot, toneAt } from "@/components/motif-field";
 import { PageIntro } from "@/components/page-intro";
-import { EVENTS, eventMeta } from "@/lib/content";
+import { getCopy, getEvents, eventMeta } from "@/lib/content";
 import styles from "./events.module.css";
 
 export const metadata: Metadata = {
@@ -11,18 +11,17 @@ export const metadata: Metadata = {
     "Exhibitions and pop-up shops where ISE Studio has shown and sold work.",
 };
 
-export default function EventsPage() {
+export default async function EventsPage() {
+  const [events, copy] = await Promise.all([getEvents(), getCopy()]);
+
   return (
     <main>
-      <PageIntro title="Events">
-        The work is easier to understand in a room with it. These are the shows and
-        pop-ups where it has been put in front of people.
-      </PageIntro>
+      <PageIntro title={copy.events.title}>{copy.events.intro}</PageIntro>
 
       <section className="band bandPaper">
         <div className="wrap">
           <ul className={styles.list}>
-            {EVENTS.map((event, index) => (
+            {events.map((event, index) => (
               <li key={event.title} className={styles.item}>
                 <ImageSlot
                   describes={`${event.title}, installation`}
