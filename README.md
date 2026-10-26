@@ -74,8 +74,10 @@ Images are hosted on UploadThing and rendered through `next/image`. The only
 images committed are the brand mark, the favicon set and the link preview
 (see Brand below).
 
-Every piece, collection, project and event takes an optional `image` holding
-an UploadThing URL. Where one is absent, `ImageSlot` renders the studio motif
+Each collection holds its **items** (the things it makes), and each item takes
+a list of `photos`, shown as a swipeable row when there are several.
+Collections, projects and events take one optional `image`. All of them hold
+UploadThing URLs. Where one is absent, `ImageSlot` renders the studio motif
 at the same aspect ratio, labelled "Photography to come" — so dropping a URL
 in swaps the photograph in without the layout shifting. See
 [public/photography/README.md](public/photography/README.md) for the workflow.

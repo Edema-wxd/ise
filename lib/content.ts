@@ -33,23 +33,25 @@ export const SITE = {
   instagram: "isestudiong",
 } as const;
 
-export type NavItem = { href: string; label: string };
+/** One photograph on UploadThing. */
+export type Photo = {
+  /** `https://<APP_ID>.ufs.sh/f/<FILE_KEY>`. */
+  src: string;
+  /** What this shot shows, for someone who cannot see it: "Wide cuff, worn on
+   *  the wrist". Defaults to the item's name and material, which is fine for
+   *  one photo and too vague for several. */
+  alt?: string;
+};
 
-export const NAV: NavItem[] = [
-  { href: "/collections", label: "Collections" },
-  { href: "/projects", label: "Projects" },
-  { href: "/events", label: "Events" },
-  { href: "/contact", label: "Custom orders" },
-];
-
-export type Piece = {
+/** One thing in a collection. */
+export type Item = {
   name: string;
   /** Material first: it is the thing a buyer asks about before anything else. */
   material: string;
   /** Free text, because a cuff is measured differently from a stool. */
   dimension: string;
-  /** UploadThing URL. Absent means the motif stands in for the photograph. */
-  image?: string;
+  /** Lead photo first. Empty or absent means the motif stands in. */
+  photos?: Photo[];
 };
 
 export type Collection = {
@@ -62,7 +64,7 @@ export type Collection = {
   tone: Tone;
   /** UploadThing URL for the collection's lead image. */
   image?: string;
-  pieces: Piece[];
+  items: Item[];
 };
 
 export const COLLECTIONS: Collection[] = [
@@ -73,7 +75,7 @@ export const COLLECTIONS: Collection[] = [
     intro:
       "Pieces built the way a tool is built: for a specific hand, a specific weight, a specific job. Brass is worked cold, finished dull, and left to take on whoever wears it.",
     tone: "coral",
-    pieces: [
+    items: [
       { name: "Wide cuff", material: "Cast brass", dimension: "58 mm inner, 24 mm face" },
       { name: "Spine collar", material: "Brass, waxed cord", dimension: "Adjustable, 38–46 cm" },
       { name: "Weight earrings", material: "Brass, steel post", dimension: "42 mm drop" },
@@ -87,7 +89,7 @@ export const COLLECTIONS: Collection[] = [
     intro:
       "Stones are chosen for colour before clarity, then set in geometry borrowed from carved and woven work. The setting is meant to be read, not to disappear under the stone.",
     tone: "mauve",
-    pieces: [
+    items: [
       { name: "Field pendant", material: "Brass, agate", dimension: "46 mm face" },
       { name: "Stacked bangle", material: "Brass, carnelian", dimension: "62 mm inner" },
       { name: "Mask stud", material: "Silver, onyx", dimension: "16 mm" },
@@ -101,7 +103,7 @@ export const COLLECTIONS: Collection[] = [
     intro:
       "Wood holds a line better than most people expect. Pattern is engraved deep enough to catch light across the grain, then the surface is oiled rather than lacquered so it keeps moving.",
     tone: "peach",
-    pieces: [
+    items: [
       { name: "Lattice tray", material: "Iroko", dimension: "320 × 220 mm" },
       { name: "Grain comb", material: "Mahogany", dimension: "140 mm" },
       { name: "Engraved box", material: "Iroko, brass pin", dimension: "180 × 120 × 70 mm" },
@@ -115,7 +117,7 @@ export const COLLECTIONS: Collection[] = [
     intro:
       "Garments are patterned flat and printed in the same six colours as everything else here, so a shirt and a cuff can be worn together without argument.",
     tone: "eggplant",
-    pieces: [
+    items: [
       { name: "Motif shirt", material: "Cotton poplin", dimension: "S–XXL" },
       { name: "Work jacket", material: "Cotton canvas", dimension: "S–XXL" },
       { name: "Wrap trouser", material: "Cotton", dimension: "S–XXL" },
@@ -129,13 +131,38 @@ export const COLLECTIONS: Collection[] = [
     intro:
       "Where the form is easier to model than to carve, it gets modelled — then printed, cast, or milled, and finished by hand like everything else.",
     tone: "brick",
-    pieces: [
+    items: [
       { name: "Stool study", material: "PLA print, oiled ply", dimension: "420 mm tall" },
       { name: "Vessel series", material: "Cast resin", dimension: "180–260 mm" },
       { name: "Mask form", material: "Printed nylon", dimension: "280 mm" },
       { name: "Hinge study", material: "Cast brass", dimension: "90 mm" },
     ],
   },
+];
+
+export type NavItem = {
+  href: string;
+  label: string;
+  /** Shown as a menu under this entry in the header. */
+  children?: NavItem[];
+};
+
+export const NAV: NavItem[] = [
+  {
+    href: "/collections",
+    label: "Collections",
+    // Built from COLLECTIONS, so a new collection joins the menu on its own.
+    children: [
+      { href: "/collections", label: "All collections" },
+      ...COLLECTIONS.map((collection) => ({
+        href: `/collections/${collection.slug}`,
+        label: collection.name,
+      })),
+    ],
+  },
+  { href: "/projects", label: "Projects" },
+  { href: "/events", label: "Events" },
+  { href: "/contact", label: "Custom orders" },
 ];
 
 export type Project = {

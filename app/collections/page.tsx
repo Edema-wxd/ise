@@ -42,7 +42,7 @@ export default function CollectionsPage() {
                   </h2>
                   <p className={styles.blurb}>{collection.intro}</p>
                   <p className={`spec ${styles.count}`}>
-                    {collection.pieces.length} pieces in this collection
+                    {collection.items.length} pieces in this collection
                   </p>
                 </div>
               </li>

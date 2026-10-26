@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ImageSlot, toneAt } from "@/components/motif-field";
+import { ItemPhotos } from "@/components/item-photos";
+import { toneAt } from "@/components/motif-field";
 import { PageIntro } from "@/components/page-intro";
 import { COLLECTIONS } from "@/lib/content";
 import styles from "../collections.module.css";
@@ -40,8 +41,8 @@ export default async function CollectionPage(props: PageProps<"/collections/[col
 
   if (!collection) notFound();
 
-  // The collection keeps its own tone for the first piece, then walks the
-  // palette, so a row of four pieces is not four identical blocks.
+  // The collection keeps its own tone for the first item, then walks the
+  // palette, so a row of four items is not four identical blocks.
   const offset = COLLECTIONS.indexOf(collection);
 
   return (
@@ -50,19 +51,17 @@ export default async function CollectionPage(props: PageProps<"/collections/[col
 
       <section className="band bandPaper">
         <div className="wrap">
-          <ul className={styles.pieces}>
-            {collection.pieces.map((piece, index) => (
-              <li key={piece.name} className={styles.piece}>
-                <ImageSlot
-                  describes={`${piece.name}, ${piece.material}`}
-                  src={piece.image}
+          <ul className={styles.items}>
+            {collection.items.map((item, index) => (
+              <li key={item.name} className={styles.item}>
+                <ItemPhotos
+                  item={item}
                   tone={toneAt(offset + index)}
-                  shape="tall"
                   sizes="(min-width: 64rem) 25vw, (min-width: 40rem) 50vw, 100vw"
                 />
-                <h2 className={styles.pieceName}>{piece.name}</h2>
-                <p className={`spec ${styles.pieceSpec}`}>
-                  {piece.material}. {piece.dimension}.
+                <h2 className={styles.itemName}>{item.name}</h2>
+                <p className={`spec ${styles.itemSpec}`}>
+                  {item.material}. {item.dimension}.
                 </p>
               </li>
             ))}
