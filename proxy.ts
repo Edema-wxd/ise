@@ -1,4 +1,5 @@
-import { auth } from "@/lib/auth/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { getAuth } from "@/lib/auth/server";
 
 /**
  * Next 16 renamed Middleware to Proxy; the file is `proxy.ts` at the project
@@ -6,8 +7,13 @@ import { auth } from "@/lib/auth/server";
  *
  * This is the optimistic redirect only. `/studio` checks the session again on
  * the server before it reads a single row — a proxy check is not authorization.
+ * With Neon Auth unconfigured there is no session to have, so it redirects.
  */
-export default auth.middleware({ loginUrl: "/auth/sign-in" });
+export default function proxy(request: NextRequest) {
+  const auth = getAuth();
+  if (!auth) return NextResponse.redirect(new URL("/auth/sign-in", request.url));
+  return auth.middleware({ loginUrl: "/auth/sign-in" })(request);
+}
 
 /*
   Scoped to the one protected route. A matcher that covered every path would

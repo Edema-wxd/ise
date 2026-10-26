@@ -68,6 +68,8 @@ export const metadata: Metadata = {
     title: SITE.name,
     description: SITE.tagline,
   },
+  // The image itself comes from app/opengraph-image.png.
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

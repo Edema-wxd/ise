@@ -1,6 +1,8 @@
 # Admin dashboard — build plan
 
-Status: planned, not started. Written 2026-10-21.
+Status: planned, not started. Written 2026-10-21; auth revised 2026-10-26 to
+use Neon Auth, which the site already runs for `/studio`, instead of a
+hand-built login.
 
 An authenticated admin at `/admin` that (a) edits every piece of copy and data
 on the public site, with a draft/published split, and (b) reads and works the
@@ -21,10 +23,10 @@ Still out of scope, unchanged: cart, checkout, Shopify, inventory, ad pixels.
 | Decision | Choice |
 |---|---|
 | Content store | Postgres (Neon), already wired for inquiries |
-| Accounts | **Single account.** No signup route; the first admin is seeded from the CLI |
+| Accounts | **Allowlisted Neon Auth accounts.** No signup route; accounts are created in the Neon console (Auth > Users) and named in `STUDIO_EMAILS` |
 | Versioning | **Draft vs published**, per entry, with a revision log and rollback |
 | Hosting | **Vercel**, custom domain pointed at it |
-| Auth mechanism | `node:crypto` scrypt + opaque session rows in Postgres — no auth library |
+| Auth mechanism | **Neon Auth** (Managed Better Auth), already guarding `/studio`. Passwords, sessions and sign-in throttling are Neon's, not ours |
 | Media | Deferred to Phase 5. On Vercel, Vercel Blob rather than Neon Object Storage: one env var, and `next/image` serves it off the same CDN |
 | New runtime deps | `zod` only (form validation + parsing jsonb at the DB boundary). `@vercel/blob` at Phase 5 |
 
@@ -92,11 +94,19 @@ uncached, `robots: noindex`, excluded from the sitemap.
 
 Guarding is two layers, per Next's own auth guidance:
 
-1. `proxy.ts` (Next 16 — `middleware.ts` is deprecated) matching
-   `/admin/:path*`, doing a cheap cookie-presence redirect to `/admin/login`.
-2. `requireAdmin()` in a `lib/auth.ts` data-access layer, called by every
-   admin page **and** every mutation action. This is the actual boundary; the
-   proxy check is an optimistic redirect and nothing more.
+1. `proxy.ts` (Next 16, `middleware.ts` is deprecated), its matcher extended
+   from `/studio/:path*` to `/admin/:path*`. Neon Auth's middleware redirects a
+   visitor with no session to `/auth/sign-in`, the same page `/studio` uses.
+2. `requireAdmin()` in `lib/auth/server.ts`, next to `getAuth()`, called by
+   every admin page **and** every mutation action. It reads the session with
+   `getAuth().getSession()`, then checks the account's email against
+   `STUDIO_EMAILS`, because Neon Auth will create an account for anyone who
+   posts to its sign-up endpoint. This is the actual boundary; the proxy check
+   is an optimistic redirect and nothing more.
+
+With Neon Auth unconfigured, `getAuth()` returns null and `requireAdmin()`
+refuses every request, the same way `/studio` does today, so the public site
+still builds and serves.
 
 ### Admin look
 
@@ -110,10 +120,11 @@ avoids a heavy dependency and a sanitisation problem.
 ## Schema
 
 `db/002_admin.sql`
-- `admins` — email, password_hash, created_at
-- `admin_sessions` — token_hash, admin_id, expires_at, created_at
-- `login_attempts` — identifier, ip, created_at (throttling)
-- `audit_log` — admin_id, action, target, created_at
+- `audit_log` — user_id (the Neon Auth user id, `neon_auth.user.id`), action,
+  target, created_at
+
+No account, session or login-attempt tables: Neon Auth keeps users and
+sessions in the branch's own `neon_auth` schema.
 
 `db/003_content.sql`
 - `content_entries` — id, type (`category` | `project` | `event`), slug,
@@ -134,12 +145,16 @@ Migrations stay re-runnable (`if not exists`, `add column if not exists`) —
 
 ## Security
 
-- scrypt with a per-account salt; compare with `timingSafeEqual`
-- session token: 32 random bytes, base64url; only its SHA-256 is stored.
-  30-day expiry, sliding refresh, revoke-all on password change
-- login throttle on both email and IP; lock out after N attempts
-- cookies: `httpOnly`, `secure`, `sameSite: 'lax'`, `path: '/'`, host-only (no
-  `domain`) so a preview deployment can't present a production cookie
+- password hashing, session issue and expiry, and sign-in rate limiting are
+  Neon Auth's (Better Auth underneath). Confirm its rate-limit settings in the
+  Neon console before launch rather than building our own
+- the session cookie is signed with `NEON_AUTH_COOKIE_SECRET` (32 characters
+  or more). Leave the `cookies.domain` option unset so the cookie stays
+  host-only and a preview deployment can't present a production cookie
+- authorization is the `STUDIO_EMAILS` allowlist, checked on every admin
+  request against `neon_auth.user`, never a claim from the token
+- before launch, follow Neon's production checklist: register the production
+  domain (`neon neon-auth domain add`) and move off the shared SMTP sender
 - Server Actions carry Next's built-in origin check, so no separate CSRF token
 - every mutation writes to `audit_log`
 - enabling draft mode goes through `requireAdmin()` — the preview route is not
@@ -149,8 +164,10 @@ Migrations stay re-runnable (`if not exists`, `add column if not exists`) —
 
 - Node runtime (required by Cache Components); nothing may set `runtime = 'edge'`
 - `revalidateTag` propagates across the fleet via Vercel's cache
-- Env: `DATABASE_URL` per environment, `BLOB_READ_WRITE_TOKEN` from Phase 5.
-  No session secret — sessions are opaque DB rows, not JWTs
+- Env: `DATABASE_URL`, `NEON_AUTH_BASE_URL`, `NEON_AUTH_COOKIE_SECRET` and
+  `STUDIO_EMAILS` per environment, `BLOB_READ_WRITE_TOKEN` from Phase 5. Neon
+  Auth state branches with the database, so a preview pointed at a Neon branch
+  gets that branch's accounts
 - **Point preview deployments at a Neon branch**, not production. Otherwise an
   edit made from a preview URL publishes to the live site
 - Draft mode's `__prerender_bypass` cookie is regenerated on every build, so a
@@ -159,9 +176,10 @@ Migrations stay re-runnable (`if not exists`, `add column if not exists`) —
 ## Phases
 
 ### 1 — Auth foundation
-`db/002_admin.sql`, `lib/auth.ts` (hash, verify, session create/read/destroy,
-`requireAdmin`), `/admin/login`, `proxy.ts`, logout, login throttling, and
-`scripts/create-admin.mjs` to seed the one account from the CLI.
+Mostly in place already: Neon Auth, `getAuth()`, `/auth/sign-in` and sign-out
+all exist for `/studio`. What is left is `db/002_admin.sql` (the audit log),
+`requireAdmin()` with the `STUDIO_EMAILS` check, and extending the `proxy.ts`
+matcher to `/admin`. Accounts are made in the Neon console, not from a script.
 
 ### 2 — Contacts inbox
 Highest value, zero risk to the public site. `db/004_inquiries_status.sql`,
@@ -202,7 +220,7 @@ deploy checklist.
 
 ## Open items
 
-- Who holds the single account's credentials, and where are they stored
+- Which accounts go on `STUDIO_EMAILS`, and who holds their credentials
 - Whether a new inquiry should send email (Resend or similar) or whether the
   unread badge is enough
 - Whether the client wants to edit the six palette hex values from the admin.

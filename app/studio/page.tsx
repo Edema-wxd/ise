@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PageIntro } from "@/components/page-intro";
-import { auth } from "@/lib/auth/server";
+import { getAuth } from "@/lib/auth/server";
 import { Inbox } from "./inbox";
 import { SignOutButton } from "./sign-out";
 import styles from "./studio.module.css";
@@ -22,6 +22,9 @@ export const dynamic = "force-dynamic";
  * this is the request that decides whether the page renders at all.
  */
 export default async function StudioPage() {
+  const auth = getAuth();
+  if (!auth) redirect("/auth/sign-in");
+
   const { data: session } = await auth.getSession();
   if (!session?.user) redirect("/auth/sign-in");
 

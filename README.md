@@ -70,8 +70,9 @@ host's bot protection.
 
 ## Media
 
-Images are hosted on UploadThing and rendered through `next/image`. Nothing
-image-shaped is committed to the repo.
+Images are hosted on UploadThing and rendered through `next/image`. The only
+images committed are the brand mark, the favicon set and the link preview
+(see Brand below).
 
 Every piece, collection, project and event takes an optional `image` holding
 an UploadThing URL. Where one is absent, `ImageSlot` renders the studio motif
@@ -117,21 +118,22 @@ aspect ratios it uses.
   face already. Note that the brand sheet calls for a grotesk sans in the body
   tier, but Kinesis Pro is a serif — the substitute follows the typeface, not
   the sheet. Worth confirming which was intended.
-- **Logo.** The header sets the wordmark in type until `LOGO` is set in
-  [lib/content.ts](lib/content.ts); see
-  [public/brand/README.md](public/brand/README.md). The hand-drawn mark must
-  not be redrawn — drop in the client's SVG.
+- **Logo.** The client's plain mark is in the header. The "studio" lockup
+  has not been delivered yet; see [public/brand/README.md](public/brand/README.md).
 - **Palette.** Hex values are read from the brand swatch; confirm exact values.
 - **Contact form.** Saves to Neon, but nothing tells the studio a row landed,
   and there is no rate limiting. Both are above.
-- **Brand assets.** Drop the mark and share image into
-  [public/brand/](public/brand/); photography goes to UploadThing, see above.
+- **Link preview.** [app/opengraph-image.png](app/opengraph-image.png) is a
+  capture of the home page with placeholder copy and no photography. Replace
+  it once the real hero is in.
 - **Upload route.** Closed by default. Needs an auth decision before any
   studio-facing uploader is built.
 - **Analytics and hosting.** Still outstanding.
-- **Dependency advisories.** `npm audit` reports several critical issues in
-  the pinned Next 16.3.2 (RCE in image optimization and `next/og`, cache
-  poisoning). These predate this work; upgrading is its own change.
+- **Dependency advisories.** Next is on 16.4.3, past the critical advisories
+  in 16.0 to 16.4.0. `npm audit` still reports high-severity issues in `zod`
+  (inside the `@neondatabase/auth` beta) and `effect` (inside `uploadthing`).
+  Both need upstream releases; the only automatic fix downgrades
+  `uploadthing` to v6.
 
 ## Neon
 
@@ -153,6 +155,12 @@ npm run db:migrate                   # applies db/*.sql
 neon deploy --env .env.local         # applies neon.ts and deploys the function
 npm run dev
 ```
+
+Neon Auth is optional at build time. With `NEON_AUTH_BASE_URL` or
+`NEON_AUTH_COOKIE_SECRET` unset, the portfolio still builds and serves;
+`/studio` redirects to sign-in, `/auth/sign-in` says sign-in is not set up,
+and `/api/auth/*` answers 503. Set both on the host before building, since the
+sign-in page is prerendered.
 
 A studio account is created in the Neon console (Auth > Users), or with the
 Auth API, and then added to `STUDIO_EMAILS`. Being signed in is not enough:
