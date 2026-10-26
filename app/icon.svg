@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- The "nested" resist motif from components/adire-band.tsx, on indigo. -->
+  <rect width="24" height="24" rx="4" fill="#1e3160" />
+  <g fill="none" stroke="#ede4d2" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.2 4.5 19.8 3.9 20.2 19.7 3.8 20.1Z" />
+    <path d="M8.2 8.5 16 8.1 16.2 16 8 15.7Z" />
+  </g>
+  <circle cx="12.1" cy="12.1" r="1.7" fill="#ede4d2" />
+</svg>

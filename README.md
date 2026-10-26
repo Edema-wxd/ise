@@ -1,12 +1,33 @@
 # Ìṣẹ́
 
-A holding screen. One route, no client JavaScript — the animation is CSS only,
-and the page prerenders as static HTML.
+A holding screen. One route, prerendered as static HTML. The animation is CSS
+only: the page ships nothing beyond the small Next.js runtime.
 
 ```bash
 npm install
-npm run dev
+npm run dev        # http://localhost:3000
+npm run lint       # ESLint, Next.js core-web-vitals + TypeScript rules
+npm run typecheck
 ```
+
+The build downloads Petrona and Archivo from Google Fonts, so it needs network
+access.
+
+## Deploying
+
+On Vercel, import the repo and deploy, no settings needed. Anywhere else, set
+`SITE_URL` to the public address when building, so shared links resolve their
+preview image. The page is prerendered, so setting it only at start is too late:
+
+```bash
+SITE_URL=https://example.com npm run build
+npm start
+```
+
+The favicon is `app/icon.svg`, and `app/apple-icon.png` is the same mark at
+180px for iOS home screens. `app/opengraph-image.png` is the link preview: a
+1200×630 capture of the page with reduced motion on, so the band shows as a
+still gradient. Recapture it if the page changes.
 
 ## The design
 

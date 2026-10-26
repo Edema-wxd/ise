@@ -17,9 +17,19 @@ const body = Archivo({
   variable: "--font-body",
 });
 
+const title = "Ìṣẹ́ — We are building";
+const description = "Ìṣẹ́ is being built. Work is the cure for want.";
+
 export const metadata: Metadata = {
-  title: "Ìṣẹ́ — We are building",
-  description: "Ìṣẹ́ is being built. Work is the cure for want.",
+  // Shared-link images need an absolute URL. Vercel supplies its deployment
+  // URL on its own; anywhere else, set SITE_URL (e.g. https://example.com)
+  // when building, since the page is prerendered.
+  metadataBase: process.env.SITE_URL ? new URL(process.env.SITE_URL) : undefined,
+  title,
+  description,
+  // The image itself comes from app/opengraph-image.png.
+  openGraph: { title, description, siteName: "Ìṣẹ́", type: "website" },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 export default function RootLayout({
