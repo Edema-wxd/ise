@@ -31,7 +31,12 @@ export type Site = {
   instagram: string;
 };
 
-export type NavItem = { href: string; label: string };
+export type NavItem = {
+  href: string;
+  label: string;
+  /** Shown as a menu under this entry in the header. */
+  children?: NavItem[];
+};
 
 /** Copy that belongs to a page rather than to a collection or a project. */
 export type Copy = {
@@ -49,14 +54,25 @@ export type Copy = {
   contact: { title: string; intro: string };
 };
 
+/** One photograph on UploadThing. */
+export type Photo = {
+  /** `https://<APP_ID>.ufs.sh/f/<FILE_KEY>`. */
+  src: string;
+  /** What this shot shows, for someone who cannot see it: "Wide cuff, worn on
+   *  the wrist". Defaults to the piece's name and material, which is fine for
+   *  one photo and too vague for several. */
+  alt?: string;
+};
+
+/** One thing in a collection. */
 export type Piece = {
   name: string;
   /** Material first: it is the thing a buyer asks about before anything else. */
   material: string;
   /** Free text, because a cuff is measured differently from a stool. */
   dimension: string;
-  /** UploadThing URL. Absent means the motif stands in for the photograph. */
-  image?: string;
+  /** Lead photo first. Empty or absent means the motif stands in. */
+  photos?: Photo[];
 };
 
 export type Collection = {
@@ -195,13 +211,29 @@ function tone(value: unknown): Tone | null {
     : null;
 }
 
+function asPhoto(value: unknown): Photo | null {
+  if (!isRecord(value)) return null;
+  const src = str(value.src);
+  return src ? { src, alt: optionalStr(value.alt) } : null;
+}
+
 function asPiece(value: unknown): Piece | null {
   if (!isRecord(value)) return null;
   const name = str(value.name);
   const material = str(value.material);
   const dimension = str(value.dimension);
   if (!name || !material || !dimension) return null;
-  return { name, material, dimension, image: optionalStr(value.image) };
+
+  // A piece saved before photo lists has a single `image`; read it as a list
+  // of one rather than dropping it, so existing rows need no migration.
+  const legacy = optionalStr(value.image);
+  const photos = Array.isArray(value.photos)
+    ? value.photos.map(asPhoto).filter((photo): photo is Photo => photo !== null)
+    : legacy
+      ? [{ src: legacy }]
+      : [];
+
+  return { name, material, dimension, photos };
 }
 
 function asCollection(value: unknown): Collection | null {
@@ -307,6 +339,30 @@ export async function getNav(): Promise<NavItem[]> {
 
   // An empty nav is a broken site rather than an editorial choice.
   return items.length > 0 ? items : seed.NAV;
+}
+
+/**
+ * The nav with every collection listed under the `/collections` entry, so a
+ * collection published in the studio joins the header menu on its own.
+ *
+ * Kept apart from `getNav()` so each stays cached under its own tag: editing
+ * the nav and publishing a collection invalidate different things.
+ */
+export function withCollectionsMenu(nav: NavItem[], collections: Collection[]): NavItem[] {
+  return nav.map((item) =>
+    item.href === "/collections"
+      ? {
+          ...item,
+          children: [
+            { href: "/collections", label: "All collections" },
+            ...collections.map((collection) => ({
+              href: `/collections/${collection.slug}`,
+              label: collection.name,
+            })),
+          ],
+        }
+      : item,
+  );
 }
 
 export async function getLogo(): Promise<Logo | null> {

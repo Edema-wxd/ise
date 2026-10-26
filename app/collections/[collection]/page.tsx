@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ImageSlot, toneAt } from "@/components/motif-field";
+import { PiecePhotos } from "@/components/piece-photos";
+import { toneAt } from "@/components/motif-field";
 import { PageIntro } from "@/components/page-intro";
 import { getCollection, getCollectionParams, getCollections } from "@/lib/content";
 import styles from "../collections.module.css";
@@ -52,11 +53,9 @@ export default async function CollectionPage(props: PageProps<"/collections/[col
           <ul className={styles.pieces}>
             {collection.pieces.map((piece, index) => (
               <li key={piece.name} className={styles.piece}>
-                <ImageSlot
-                  describes={`${piece.name}, ${piece.material}`}
-                  src={piece.image}
+                <PiecePhotos
+                  piece={piece}
                   tone={toneAt(offset + index)}
-                  shape="tall"
                   sizes="(min-width: 64rem) 25vw, (min-width: 40rem) 50vw, 100vw"
                 />
                 <h2 className={styles.pieceName}>{piece.name}</h2>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Alegreya, Bodoni_Moda, Space_Grotesk } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getLogo, getNav, getSite } from "@/lib/content";
+import { getCollections, getLogo, getNav, getSite, withCollectionsMenu } from "@/lib/content";
 import "./globals.css";
 
 /*
@@ -84,7 +84,12 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   /* The header is a client component, so what it needs is read here and
      handed down rather than imported there. */
-  const [site, nav, logo] = await Promise.all([getSite(), getNav(), getLogo()]);
+  const [site, nav, logo, collections] = await Promise.all([
+    getSite(),
+    getNav(),
+    getLogo(),
+    getCollections(),
+  ]);
 
   return (
     <html
@@ -92,7 +97,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${display.variable} ${ui.variable} ${body.variable}`}
     >
       <body>
-        <SiteHeader siteName={site.name} nav={nav} logo={logo} />
+        <SiteHeader siteName={site.name} nav={withCollectionsMenu(nav, collections)} logo={logo} />
         {children}
         <SiteFooter />
       </body>

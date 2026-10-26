@@ -1,0 +1,46 @@
+.gallery {
+  min-width: 0;
+}
+
+/* Full-width shots keep the card the same height as a single-photo card, so a
+   row of pieces lines up whatever each one holds. */
+.track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-rule) transparent;
+}
+
+.track:focus-visible {
+  outline: 2px solid var(--brick);
+  outline-offset: 3px;
+}
+
+.shot {
+  position: relative;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+/* Set like the "Photography to come" label in motif-field.module.css, on the
+   opposite corner so the two never sit in the same place. */
+.count {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 0.45rem 0.7rem;
+  background-color: var(--eggplant);
+  color: var(--paper);
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
