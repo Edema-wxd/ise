@@ -74,3 +74,392 @@
   /* Inquiries arrive as typed, line breaks and all. */
   white-space: pre-wrap;
 }
+
+/* ---- Studio navigation ---- */
+
+.studioNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+}
+
+.studioNavLink {
+  padding-bottom: 0.2rem;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.studioNavLink:hover {
+  border-bottom-color: var(--mauve);
+}
+
+.studioNavLink[aria-current="page"] {
+  border-bottom-color: var(--brick);
+}
+
+/* ---- Shared controls ---- */
+
+.subheading {
+  font-size: var(--size-heading);
+}
+
+.label,
+.legend {
+  display: block;
+  padding: 0;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-body);
+  font-weight: 500;
+}
+
+.field {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Same field as the custom-orders and sign-in forms. */
+.input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.5rem;
+  padding: 0.65rem 0.8rem;
+  background-color: var(--paper);
+  color: var(--eggplant);
+  font: inherit;
+  border: 1px solid var(--mauve);
+  border-radius: 0;
+}
+
+.input:focus-visible {
+  border-color: var(--eggplant);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--brick);
+}
+
+.hint {
+  margin-top: 0.4rem;
+  color: var(--ink-muted);
+  font-size: var(--size-small);
+}
+
+.field .error {
+  margin-top: 0.4rem;
+}
+
+.success {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-small);
+  font-weight: 500;
+}
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inline .input {
+  flex: 1 1 12rem;
+  margin-top: 0;
+}
+
+.prefix {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-small);
+  color: var(--ink-muted);
+}
+
+.iconButton,
+.textButton {
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-small);
+  color: var(--eggplant);
+  background: none;
+  cursor: pointer;
+}
+
+/* Square and large enough to hit on a phone. */
+.iconButton {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  border: 1px solid var(--ink-rule);
+}
+
+.iconButton:hover:not(:disabled) {
+  border-color: var(--eggplant);
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.textButton {
+  min-height: 2.25rem;
+  padding: 0 0.25rem;
+  border: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-rule);
+  text-underline-offset: 0.2em;
+}
+
+.textButton:hover {
+  color: var(--brick);
+  text-decoration-color: currentColor;
+}
+
+/* ---- Collections list ---- */
+
+.entries {
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--ink-rule);
+}
+
+.entry:last-child {
+  border-bottom: 1px solid var(--ink-rule);
+}
+
+.entryMain {
+  min-width: 0;
+}
+
+.entryName {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: var(--size-heading);
+  text-decoration: none;
+}
+
+a.entryName:hover {
+  color: var(--brick);
+}
+
+.entryMain .meta {
+  margin-top: 0.3rem;
+}
+
+.entryActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.live {
+  background-color: var(--eggplant);
+  color: var(--paper);
+}
+
+.changed {
+  background-color: var(--coral);
+  color: var(--eggplant);
+}
+
+.draft {
+  background-color: var(--peach);
+  color: var(--eggplant);
+}
+
+.newForm {
+  width: 100%;
+  max-width: 32rem;
+}
+
+.newForm .inline {
+  margin-top: 0.5rem;
+}
+
+.deleted {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+/* ---- Editor ---- */
+
+.editorLayout {
+  display: grid;
+  gap: clamp(2rem, 5vw, 3.5rem);
+}
+
+@media (min-width: 64rem) {
+  .editorLayout {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    align-items: start;
+  }
+
+  .editorSide {
+    position: sticky;
+    top: 7rem;
+  }
+}
+
+.editorMain,
+.editorSide {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.editor {
+  display: grid;
+  gap: 2.5rem;
+  min-width: 0;
+}
+
+.fieldset {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldset > .legend {
+  margin-bottom: 0.25rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: var(--size-heading);
+  font-weight: 400;
+}
+
+.tones {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.toneChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.6rem;
+}
+
+.toneChoice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-small);
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.toneChoice input {
+  accent-color: var(--brick);
+}
+
+.swatch {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 1px solid var(--ink-rule);
+}
+
+.piece {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding-top: 1.1rem;
+  border-top: 2px solid var(--brick);
+}
+
+.pieceHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.pieceTitle {
+  font-size: var(--size-body);
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+}
+
+.pieceFields {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 46rem) {
+  .pieceFields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.photos {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+  padding-left: 1rem;
+  border-left: 1px solid var(--ink-rule);
+}
+
+.photo {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Stays reachable while a long collection scrolls past. */
+.saveBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 1rem 0;
+  background-color: var(--paper);
+  border-top: 1px solid var(--ink-rule);
+}
+
+.saveBar p {
+  flex: 1 1 14rem;
+  outline: none;
+}
+
+.history {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-small);
+}
+
+.historyItem {
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--ink-rule);
+}
