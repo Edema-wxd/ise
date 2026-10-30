@@ -55,6 +55,35 @@ when `DATABASE_URL` is unset or Postgres cannot be reached — so a checkout
 with no env still renders a complete site. Once the database is seeded,
 editing that file changes nothing.
 
+### Editing collections
+
+Collections are edited at [/studio/collections](app/studio/collections/page.tsx):
+create, reorder, delete and restore them, and edit each one's text, tone,
+lead photo and pieces (with photo lists) at `/studio/collections/<id>`.
+
+- **Drafts and publishing.** Edits save as a draft that only the studio sees.
+  *Publish* copies the draft to the live site; *Unpublish* takes it off;
+  *Discard unpublished edits* resets the draft to what is live. A draft may be
+  half-written, but publishing runs the same check the public reader applies,
+  so nothing that publishes can vanish from the site as malformed.
+- **History.** Every save, publish, unpublish, discard, delete and restore
+  writes a `content_revisions` row with who did it, in the same statement as
+  the change. Any earlier version can be loaded back into the draft.
+- **Two people at once.** Each save carries the version it was edited from;
+  if someone saved in between, the save is refused rather than overwriting
+  them. Reordering is not versioned or recorded.
+- **Access.** Every page and every action checks the session and the
+  `STUDIO_EMAILS` allowlist against `neon_auth.user` — see
+  [lib/studio/session.ts](lib/studio/session.ts). `STUDIO_EMAILS` must be set
+  in the app's environment as well as the Function's.
+- **Cache.** Publish, unpublish, reorder, delete and restore call
+  `updateTag("content:collection")`, so the public pages show the change on
+  the next request. Saving a draft touches nothing public.
+
+Projects, events, site settings, nav and page copy are not editable yet (see
+[docs/admin-plan.md](docs/admin-plan.md), Phase 4). Neither is preview: a draft
+is only visible in the editor until it is published.
+
 **The seed copy is placeholder.** It is written to the brand voice and to the
 right length for each slot, but no claim in it is client-approved. Replace it
 from Discovery before launch.
@@ -198,9 +227,10 @@ retries rather than dropping the inquiry. With no destination configured the
 digest says so and leaves the rows pending.
 
 A studio account is created in the Neon console (Auth > Users), or with the
-Auth API, and then added to `STUDIO_EMAILS`. Being signed in is not enough:
-the function checks that allowlist against `neon_auth.user` before it returns a
-row, so an account that is not listed gets a 403.
+Auth API, and then added to `STUDIO_EMAILS`, in both the Function's env and the
+app's. Being signed in is not enough: the inbox function and the collections
+editor both check that allowlist against `neon_auth.user`, so an account that
+is not listed gets a 403 from the inbox and cannot open the editor.
 
 Before launch: add the production origin to `STUDIO_ORIGINS`, register it with
 `neon neon-auth domain add https://isestudiong.com`, and move Auth off the

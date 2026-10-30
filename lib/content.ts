@@ -203,7 +203,8 @@ function optionalStr(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value : undefined;
 }
 
-const TONES: Tone[] = ["coral", "mauve", "peach", "eggplant", "brick", "paper"];
+/** Every tone a collection may take, in the order the studio offers them. */
+export const TONES: Tone[] = ["coral", "mauve", "peach", "eggplant", "brick", "paper"];
 
 function tone(value: unknown): Tone | null {
   return typeof value === "string" && (TONES as string[]).includes(value)
@@ -234,6 +235,14 @@ function asPiece(value: unknown): Piece | null {
       : [];
 
   return { name, material, dimension, photos };
+}
+
+/**
+ * The same check the public readers apply, exported so the studio refuses to
+ * publish anything the site would then drop as malformed.
+ */
+export function parseCollection(value: unknown): Collection | null {
+  return asCollection(value);
 }
 
 function asCollection(value: unknown): Collection | null {

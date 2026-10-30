@@ -17,6 +17,10 @@ const TONES = {
 
 export type Tone = keyof typeof TONES;
 
+/** Every tone, for pickers. Safe to import from client components, unlike
+ *  `TONES` in lib/content.ts, which sits beside the database readers. */
+export const TONE_NAMES = Object.keys(TONES) as Tone[];
+
 /** Rotates through the palette so a list of fields never repeats a pairing
  *  side by side. */
 export function toneAt(index: number): Tone {
