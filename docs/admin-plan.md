@@ -209,7 +209,24 @@ Verified: `next build` exits 0, the public pages still prerender, and a value
 changed directly in Postgres appears in the prerendered HTML — so the pages
 read the database, not the seed.
 
-### 4 — Editors and publishing
+### 4 — Editors and publishing — **collections done**
+Built for collections, at [/studio/collections](../app/studio/collections/page.tsx):
+list with create, reorder (renumbers `sort_order`), soft delete and restore;
+an editor for the collection and its pieces and photo lists; Save draft /
+Publish / Unpublish / Discard (revert) / load any revision into the draft.
+Each write and its `content_revisions` row are one CTE statement; each save
+carries the row's `updated_at` and is refused if it changed (no lost edits).
+Access is `getStudioAccess()` in
+[lib/studio/session.ts](../lib/studio/session.ts) — session plus the
+`STUDIO_EMAILS` allowlist against `neon_auth.user` — re-checked in every
+action. Publish runs `parseCollection()`, the public reader's own check.
+Public-facing writes call `updateTag("content:collection")`.
+
+Not yet: the same for projects, events, settings, nav and copy (the editor
+is specific to collections; the field-metadata generalisation below is still
+the plan once a second type needs it), preview/draft mode, revisions for
+reorder, and `cacheLife` on the readers.
+
 The largest phase. One data-driven form over per-type field metadata rather
 than a bespoke page each: site settings, nav, page copy, collections and their
 pieces, projects and their sections, events. Save draft / Publish / Unpublish
