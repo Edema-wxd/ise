@@ -1,6 +1,6 @@
 import { cacheTag } from "next/cache";
 import { draftMode } from "next/headers";
-import type { Tone } from "@/components/motif-field";
+import { TONE_NAMES, type Tone } from "@/components/motif-field";
 import { getSql } from "@/lib/db";
 import * as seed from "./content-seed";
 
@@ -203,7 +203,10 @@ function optionalStr(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value : undefined;
 }
 
-const TONES: Tone[] = ["coral", "mauve", "peach", "eggplant", "brick", "paper"];
+/** Every tone a collection may take. The same list the studio's picker
+ *  offers, from the one place the tones are defined, so a tone can never be
+ *  pickable in the studio and then refused on publish. */
+export const TONES: Tone[] = TONE_NAMES;
 
 function tone(value: unknown): Tone | null {
   return typeof value === "string" && (TONES as string[]).includes(value)
@@ -234,6 +237,14 @@ function asPiece(value: unknown): Piece | null {
       : [];
 
   return { name, material, dimension, photos };
+}
+
+/**
+ * The same check the public readers apply, exported so the studio refuses to
+ * publish anything the site would then drop as malformed.
+ */
+export function parseCollection(value: unknown): Collection | null {
+  return asCollection(value);
 }
 
 function asCollection(value: unknown): Collection | null {

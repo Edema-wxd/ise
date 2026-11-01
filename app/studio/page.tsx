@@ -4,6 +4,7 @@ import { PageIntro } from "@/components/page-intro";
 import { getAuth } from "@/lib/auth/server";
 import { Inbox } from "./inbox";
 import { SignOutButton } from "./sign-out";
+import { StudioNav } from "./studio-nav";
 import styles from "./studio.module.css";
 
 export const metadata: Metadata = {
@@ -45,6 +46,7 @@ export default async function StudioPage() {
 
       <section className="band bandPaper">
         <div className={`wrap ${styles.layout}`}>
+          <StudioNav current="/studio" />
           {endpoint ? (
             <Inbox endpoint={endpoint} />
           ) : (
