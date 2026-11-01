@@ -69,6 +69,10 @@ lead photo and pieces (with photo lists) at `/studio/collections/<id>`.
 - **History.** Every save, publish, unpublish, discard, delete and restore
   writes a `content_revisions` row with who did it, in the same statement as
   the change. Any earlier version can be loaded back into the draft.
+- **Web addresses.** Changing a live collection's address takes effect on
+  publish; until then the live page stays where it is. An address stays
+  reserved while any collection's draft, live version or deleted copy uses
+  it, so two collections can never be served at one URL.
 - **Two people at once.** Each save carries the version it was edited from;
   if someone saved in between, the save is refused rather than overwriting
   them. Reordering is not versioned or recorded.

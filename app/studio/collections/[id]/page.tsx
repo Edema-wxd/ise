@@ -42,7 +42,7 @@ export default async function EditCollectionPage(props: PageProps<"/studio/colle
     redirect("/auth/sign-in");
   }
 
-  const { id: raw } = await props.params;
+  const [{ id: raw }, query] = await Promise.all([props.params, props.searchParams]);
   const id = Number(raw);
   if (!Number.isSafeInteger(id) || id <= 0) notFound();
 
@@ -51,6 +51,13 @@ export default async function EditCollectionPage(props: PageProps<"/studio/colle
   if (!entry) notFound();
 
   const name = entry.draft.name || "Untitled collection";
+  const takenSlug = typeof query.slug === "string" ? query.slug : "";
+  const notice =
+    query.notice === "slug-taken"
+      ? `That version uses /collections/${takenSlug}, which another collection has taken since. The draft is unchanged.`
+      : query.notice === "slug-deleted"
+        ? `That version uses /collections/${takenSlug}, which a deleted collection still holds. Restore or rename that one first. The draft is unchanged.`
+        : "";
 
   if (entry.deletedAt) {
     return (
@@ -86,6 +93,11 @@ export default async function EditCollectionPage(props: PageProps<"/studio/colle
             <p className={styles.meta}>
               <Link href="/studio/collections">← All collections</Link>
             </p>
+            {notice ? (
+              <p className={styles.error} role="alert">
+                {notice}
+              </p>
+            ) : null}
             <CollectionEditor
               id={entry.id}
               initial={entry.draft}
@@ -99,7 +111,7 @@ export default async function EditCollectionPage(props: PageProps<"/studio/colle
             {entry.isPublished ? (
               <>
                 <p className={styles.meta}>
-                  <Link href={`/collections/${entry.slug}`} target="_blank" rel="noopener">
+                  <Link href={`/collections/${entry.publishedSlug ?? entry.slug}`} target="_blank" rel="noopener">
                     View the live page ↗
                   </Link>
                 </p>

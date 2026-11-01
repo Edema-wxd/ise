@@ -34,7 +34,11 @@ export type CollectionDraft = {
 
 export type CollectionEntry = {
   id: number;
+  /** The draft's web address. */
   slug: string;
+  /** Where the live page is, when published: the published payload's own
+   *  slug, which differs from `slug` while a renamed address is unpublished. */
+  publishedSlug: string | null;
   sortOrder: number;
   draft: CollectionDraft;
   isPublished: boolean;
@@ -205,6 +209,7 @@ type Row = {
   slug: string;
   sort_order: number;
   draft: unknown;
+  published_slug: string | null;
   is_published: boolean;
   has_changes: boolean;
   published_at: string | null;
@@ -215,7 +220,8 @@ type Row = {
 function toEntry(row: Row): CollectionEntry {
   return {
     id: Number(row.id),
-    slug: row.slug,
+    slug: toDraft(row.draft).slug || row.slug,
+    publishedSlug: row.published_slug,
     sortOrder: row.sort_order,
     draft: toDraft(row.draft),
     isPublished: row.is_published,
@@ -229,7 +235,7 @@ function toEntry(row: Row): CollectionEntry {
 /** Every collection, live ones in display order, then the deleted ones. */
 export async function listCollections(sql: Sql): Promise<CollectionEntry[]> {
   const rows = await sql`
-    select id, slug, sort_order, draft,
+    select id, slug, sort_order, draft, published->>'slug' as published_slug,
            published is not null as is_published,
            draft is distinct from published as has_changes,
            published_at::text, updated_at::text, deleted_at::text
@@ -242,7 +248,7 @@ export async function listCollections(sql: Sql): Promise<CollectionEntry[]> {
 
 export async function getCollectionEntry(sql: Sql, id: number): Promise<CollectionEntry | null> {
   const rows = await sql`
-    select id, slug, sort_order, draft,
+    select id, slug, sort_order, draft, published->>'slug' as published_slug,
            published is not null as is_published,
            draft is distinct from published as has_changes,
            published_at::text, updated_at::text, deleted_at::text
@@ -250,6 +256,42 @@ export async function getCollectionEntry(sql: Sql, id: number): Promise<Collecti
      where kind = 'collection' and id = ${id}
   `;
   return rows.length > 0 ? toEntry(rows[0] as Row) : null;
+}
+
+/**
+ * What, if anything, already claims this web address, other than entry `id`.
+ *
+ * An address is claimed by any collection's draft or live version, deleted
+ * ones included: a deleted collection keeps its address so that restoring it
+ * cannot collide. The unique index on `content_entries.slug` holds one value
+ * per row, so it cannot see a live address and a renamed draft address at the
+ * same time; this check covers both. The index still catches a race between
+ * two saves.
+ */
+export async function slugClaim(
+  sql: Sql,
+  id: number | null,
+  slug: string,
+): Promise<"live" | "deleted" | null> {
+  const rows = await sql`
+    select deleted_at is not null as deleted
+      from content_entries
+     where kind = 'collection'
+       and id is distinct from ${id}
+       and (slug = ${slug} or draft->>'slug' = ${slug} or published->>'slug' = ${slug})
+     order by deleted_at is not null
+     limit 1
+  `;
+  if (rows.length === 0) return null;
+  return (rows[0] as { deleted: boolean }).deleted ? "deleted" : "live";
+}
+
+/** The message for a claimed address, pointing at Deleted when that is where
+ *  the other collection is. */
+export function slugTakenMessage(slug: string, claim: "live" | "deleted"): string {
+  return claim === "deleted"
+    ? `A deleted collection still uses /collections/${slug}. Restore it from Deleted, or pick another address.`
+    : `Another collection already uses /collections/${slug}.`;
 }
 
 export async function listRevisions(sql: Sql, id: number): Promise<Revision[]> {

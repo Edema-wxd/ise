@@ -80,8 +80,13 @@ export function CollectionEditor({
 
   // A save clears the dirty flag and moves the base forward.
   const [saved, setSaved] = useState(state);
+  /* Field errors name pieces and photos by position. Once rows are added,
+     removed or moved, those positions point at the wrong rows, so piece
+     errors are hidden until the next save re-checks the new order. */
+  const [reshaped, setReshaped] = useState(false);
   if (saved !== state) {
     setSaved(state);
+    setReshaped(false);
     if (state.status === "saved" || state.status === "published") {
       setDirty(false);
       setBase(state.updatedAt);
@@ -104,23 +109,46 @@ export function CollectionEditor({
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    /* In-app links navigate without unloading the page, so beforeunload never
+       fires for them. Caught on the way down, before Next's <Link> sees the
+       click, so a cancelled click goes nowhere. */
+    const guard = (event: MouseEvent) => {
+      const link = (event.target as Element | null)?.closest?.("a[href]");
+      if (!link || link.getAttribute("target") === "_blank") return;
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (!window.confirm("Leave without saving? Your edits to this collection will be lost.")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
+    document.addEventListener("click", guard, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", guard, true);
+    };
   }, [dirty]);
 
   useEffect(() => {
     if (state.status !== "idle") status.current?.focus();
   }, [state]);
 
-  const errors = state.errors;
+  const errors = reshaped
+    ? Object.fromEntries(Object.entries(state.errors).filter(([path]) => !path.startsWith("pieces.")))
+    : state.errors;
   const update = (change: (current: Draft) => Draft) => {
     setDraft(change);
     setDirty(true);
   };
   const setField = (field: keyof Omit<Draft, "pieces">, value: string) =>
     update((current) => ({ ...current, [field]: value }));
-  const setPiece = (index: number, change: (piece: PieceRow) => PieceRow) =>
-    update((current) => ({
+  /** For adding, removing and moving rows, which shifts every later index. */
+  const reshape = (change: (current: Draft) => Draft) => {
+    update(change);
+    setReshaped(true);
+  };
+  const setPiece = (index: number, change: (piece: PieceRow) => PieceRow, shape = false) =>
+    (shape ? reshape : update)((current) => ({
       ...current,
       pieces: current.pieces.map((piece, i) => (i === index ? change(piece) : piece)),
     }));
@@ -157,7 +185,7 @@ export function CollectionEditor({
       <input type="hidden" name="updatedAt" value={base} />
       <input type="hidden" name="payload" value={JSON.stringify(withoutKeys(draft))} />
 
-      <fieldset className={styles.fieldset}>
+      <fieldset className={styles.fieldset} disabled={pending}>
         <legend className={styles.legend}>The collection</legend>
 
         {field(
@@ -258,7 +286,7 @@ export function CollectionEditor({
         )}
       </fieldset>
 
-      <fieldset className={styles.fieldset}>
+      <fieldset className={styles.fieldset} disabled={pending}>
         <legend className={styles.legend}>Pieces ({draft.pieces.length})</legend>
 
         {draft.pieces.map((piece, i) => {
@@ -273,7 +301,7 @@ export function CollectionEditor({
                     type="button"
                     className={styles.iconButton}
                     disabled={i === 0}
-                    onClick={() => update((c) => ({ ...c, pieces: move(c.pieces, i, i - 1) }))}
+                    onClick={() => reshape((c) => ({ ...c, pieces: move(c.pieces, i, i - 1) }))}
                     aria-label={`Move ${label} up`}
                   >
                     ↑
@@ -282,7 +310,7 @@ export function CollectionEditor({
                     type="button"
                     className={styles.iconButton}
                     disabled={i === draft.pieces.length - 1}
-                    onClick={() => update((c) => ({ ...c, pieces: move(c.pieces, i, i + 1) }))}
+                    onClick={() => reshape((c) => ({ ...c, pieces: move(c.pieces, i, i + 1) }))}
                     aria-label={`Move ${label} down`}
                   >
                     ↓
@@ -290,7 +318,7 @@ export function CollectionEditor({
                   <button
                     type="button"
                     className={styles.textButton}
-                    onClick={() => update((c) => ({ ...c, pieces: c.pieces.filter((_, j) => j !== i) }))}
+                    onClick={() => reshape((c) => ({ ...c, pieces: c.pieces.filter((_, j) => j !== i) }))}
                     aria-label={`Remove ${label}`}
                   >
                     Remove
@@ -363,7 +391,7 @@ export function CollectionEditor({
                           type="button"
                           className={styles.iconButton}
                           disabled={j === 0}
-                          onClick={() => setPiece(i, (p) => ({ ...p, photos: move(p.photos, j, j - 1) }))}
+                          onClick={() => setPiece(i, (p) => ({ ...p, photos: move(p.photos, j, j - 1) }), true)}
                           aria-label={`Move photo ${j + 1} of ${label} earlier`}
                         >
                           ↑
@@ -372,7 +400,7 @@ export function CollectionEditor({
                           type="button"
                           className={styles.iconButton}
                           disabled={j === piece.photos.length - 1}
-                          onClick={() => setPiece(i, (p) => ({ ...p, photos: move(p.photos, j, j + 1) }))}
+                          onClick={() => setPiece(i, (p) => ({ ...p, photos: move(p.photos, j, j + 1) }), true)}
                           aria-label={`Move photo ${j + 1} of ${label} later`}
                         >
                           ↓
@@ -380,7 +408,7 @@ export function CollectionEditor({
                         <button
                           type="button"
                           className={styles.textButton}
-                          onClick={() => setPiece(i, (p) => ({ ...p, photos: p.photos.filter((_, k) => k !== j) }))}
+                          onClick={() => setPiece(i, (p) => ({ ...p, photos: p.photos.filter((_, k) => k !== j) }), true)}
                           aria-label={`Remove photo ${j + 1} of ${label}`}
                         >
                           Remove photo
@@ -393,7 +421,7 @@ export function CollectionEditor({
                   type="button"
                   className="ctaQuiet"
                   onClick={() =>
-                    setPiece(i, (p) => ({ ...p, photos: [...p.photos, { key: key(), src: "", alt: "" }] }))
+                    setPiece(i, (p) => ({ ...p, photos: [...p.photos, { key: key(), src: "", alt: "" }] }), true)
                   }
                 >
                   Add a photo
@@ -407,7 +435,7 @@ export function CollectionEditor({
           type="button"
           className="ctaQuiet"
           onClick={() =>
-            update((c) => ({
+            reshape((c) => ({
               ...c,
               pieces: [...c.pieces, { key: key(), name: "", material: "", dimension: "", photos: [] }],
             }))

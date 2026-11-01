@@ -74,7 +74,11 @@ export default async function StudioCollectionsPage() {
                     </Link>
                     <p className={styles.meta}>
                       <span className={`${styles.badge} ${styles[s.tone]}`}>{s.label}</span>{" "}
-                      /collections/{entry.slug} · {entry.draft.pieces.length}{" "}
+                      /collections/{entry.publishedSlug ?? entry.slug}
+                      {entry.publishedSlug && entry.publishedSlug !== entry.slug
+                        ? ` (moving to /collections/${entry.slug} on publish)`
+                        : ""}{" "}
+                      · {entry.draft.pieces.length}{" "}
                       {entry.draft.pieces.length === 1 ? "piece" : "pieces"}
                     </p>
                   </div>

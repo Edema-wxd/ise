@@ -6,7 +6,9 @@ import { getSql } from "@/lib/db";
 import {
   draftErrors,
   publishErrors,
+  slugClaim,
   slugify,
+  slugTakenMessage,
   toDraft,
   toPayload,
   type FieldErrors,
@@ -19,7 +21,17 @@ import type { EditorState, NewCollectionState } from "./state";
   on, so each one re-checks access itself before touching a row.
 
   Each write and its `content_revisions` row go in one statement (a CTE), so
-  the history can never miss a change. The public cache is invalidated only
+  the history can never miss a change.
+
+  `updated_at` is the draft's version: it moves only when the draft changes
+  (save, publish, discard, load from history), because the editor treats a
+  new version as "the draft was replaced". Unpublish, delete and restore
+  leave the draft alone, so they leave `updated_at` alone too.
+
+  `content_entries.slug` holds the live address while a collection is
+  published, and the draft's address otherwise, so a renamed draft never
+  frees the live URL for another collection. `slugClaim()` checks a new
+  address against every draft, live and deleted address before it is used. The public cache is invalidated only
   when what visitors see changes: publish, unpublish, delete, restore and
   reorder. A saved draft is invisible to the site, so it invalidates nothing.
 */
@@ -56,6 +68,9 @@ export async function createCollection(
   const slug = slugify(name);
   if (!slug) return { error: "Use at least one letter or number in the name." };
 
+  const claim = await slugClaim(ctx.sql, null, slug);
+  if (claim) return { error: `${slugTakenMessage(slug, claim)} Pick another name.` };
+
   const draft = JSON.stringify(toPayload({ ...toDraft({ name, slug }), pieces: [] }));
 
   let id: number;
@@ -79,7 +94,7 @@ export async function createCollection(
     id = Number((rows[0] as { id: string | number }).id);
   } catch (error) {
     if (isUniqueViolation(error)) {
-      return { error: `There is already a collection at /collections/${slug}. Pick another name.` };
+      return { error: `Another collection already uses /collections/${slug}. Pick another name.` };
     }
     console.error("createCollection: insert failed", error);
     return { error: "That did not save. Try again." };
@@ -122,6 +137,16 @@ export async function saveCollection(previous: EditorState, form: FormData): Pro
     };
   }
 
+  const claim = await slugClaim(ctx.sql, id, draft.slug);
+  if (claim) {
+    return {
+      ...previous,
+      status: "invalid",
+      errors: { slug: slugTakenMessage(draft.slug, claim) },
+      message: intent === "publish" ? "Not published. Fix the marked fields first; your edits are still here." : "Not saved. Fix the marked fields first.",
+    };
+  }
+
   const payload = JSON.stringify(toPayload(draft));
 
   let rows: Record<string, unknown>[];
@@ -147,7 +172,10 @@ export async function saveCollection(previous: EditorState, form: FormData): Pro
         : await ctx.sql`
             with updated as (
               update content_entries
-                 set draft = ${payload}::jsonb, slug = ${draft.slug}, updated_at = now()
+                 set draft = ${payload}::jsonb, updated_at = now(),
+                     -- A live collection keeps its live address in the column
+                     -- until the new one is published.
+                     slug = case when published is null then ${draft.slug} else slug end
                where id = ${id} and kind = 'collection' and deleted_at is null
                  and updated_at = ${updatedAt}::timestamptz
               returning id, updated_at
@@ -162,7 +190,7 @@ export async function saveCollection(previous: EditorState, form: FormData): Pro
       return {
         ...previous,
         status: "invalid",
-        errors: { slug: "Another collection already uses this web address." },
+        errors: { slug: `Another collection already uses /collections/${draft.slug}.` },
         message: "Not saved. Fix the marked fields first.",
       };
     }
@@ -211,7 +239,7 @@ export async function unpublishCollection(form: FormData) {
   await sql`
     with updated as (
       update content_entries
-         set published = null, published_at = null, updated_at = now()
+         set published = null, published_at = null, slug = draft->>'slug'
        where id = ${id} and kind = 'collection' and published is not null
       returning id
     )
@@ -230,7 +258,7 @@ export async function revertCollection(form: FormData) {
   await sql`
     with updated as (
       update content_entries
-         set draft = published, slug = published->>'slug', updated_at = now()
+         set draft = published, updated_at = now()
        where id = ${id} and kind = 'collection' and published is not null
       returning id, draft
     )
@@ -247,26 +275,34 @@ export async function loadRevision(form: FormData) {
   const id = int(form, "id");
   const revision = int(form, "revision");
   if (!id || !revision) return;
-  try {
-    await sql`
-      with source as (
-        select payload from content_revisions
-         where id = ${revision} and target = ${`entry:${id}`} and payload is not null
-      ), updated as (
-        update content_entries
-           set draft = (select payload from source),
-               slug = (select payload->>'slug' from source),
-               updated_at = now()
-         where id = ${id} and kind = 'collection' and exists (select 1 from source)
-        returning id, draft
-      )
-      insert into content_revisions (target, action, payload, actor)
-      select 'entry:' || id, 'revert', draft, ${actor} from updated
-    `;
-  } catch (error) {
-    // The old version's slug is now taken by another collection.
-    if (!isUniqueViolation(error)) throw error;
+
+  // An old version may carry an address another collection has taken since.
+  // Say so instead of loading half of it or failing silently.
+  const source = await sql`
+    select payload->>'slug' as slug from content_revisions
+     where id = ${revision} and target = ${`entry:${id}`} and payload is not null
+  `;
+  const slug = (source[0] as { slug?: string } | undefined)?.slug;
+  if (!slug) return;
+  const claim = await slugClaim(sql, id, slug);
+  if (claim) {
+    redirect(`/studio/collections/${id}?notice=${claim === "deleted" ? "slug-deleted" : "slug-taken"}&slug=${encodeURIComponent(slug)}`);
   }
+
+  await sql`
+    with source as (
+      select payload from content_revisions
+       where id = ${revision} and target = ${`entry:${id}`} and payload is not null
+    ), updated as (
+      update content_entries
+         set draft = (select payload from source), updated_at = now(),
+             slug = case when published is null then (select payload->>'slug' from source) else slug end
+       where id = ${id} and kind = 'collection' and exists (select 1 from source)
+      returning id, draft
+    )
+    insert into content_revisions (target, action, payload, actor)
+    select 'entry:' || id, 'revert', draft, ${actor} from updated
+  `;
   refresh();
 }
 
@@ -278,7 +314,7 @@ export async function deleteCollection(form: FormData) {
   if (!id) return;
   await sql`
     with updated as (
-      update content_entries set deleted_at = now(), updated_at = now()
+      update content_entries set deleted_at = now()
        where id = ${id} and kind = 'collection' and deleted_at is null
       returning id
     )
@@ -298,7 +334,7 @@ export async function restoreCollection(form: FormData) {
   await sql`
     with updated as (
       update content_entries
-         set deleted_at = null, updated_at = now(),
+         set deleted_at = null,
              sort_order = (select coalesce(max(sort_order), -1) + 1 from content_entries
                             where kind = 'collection' and deleted_at is null)
        where id = ${id} and kind = 'collection' and deleted_at is not null
