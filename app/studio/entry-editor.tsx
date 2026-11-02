@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import type { Kind } from "@/lib/studio/kinds";
 import { saveEntry } from "./actions";
 import type { EditorState } from "./state";
 import styles from "./studio.module.css";
@@ -45,9 +44,7 @@ export type EntryEditor<R> = {
   described: (path: string, hint?: boolean) => string | undefined;
   /** For EntryForm; not for the fields. */
   internal: {
-    kind: Kind;
-    one: string;
-    id: number;
+    hidden: Record<string, string | number>;
     base: string;
     payload: string;
     action: (form: FormData) => void;
@@ -57,23 +54,27 @@ export type EntryEditor<R> = {
 };
 
 export function useEntryEditor<D, R>({
-  kind,
   one,
-  id,
+  hidden,
+  save = saveEntry,
   initial,
   updatedAt,
   withKeys,
   withoutKeys,
 }: {
-  kind: Kind;
+  /** What is being edited, for the leave-without-saving prompt. */
   one: string;
-  id: number;
+  /** Identifies the target to the save action: `{ kind, id }` for a content
+   *  entry, `{ key }` for a setting. */
+  hidden: Record<string, string | number>;
+  /** The Server Action that saves and publishes. Content entries by default. */
+  save?: (previous: EditorState, form: FormData) => Promise<EditorState>;
   initial: D;
   updatedAt: string;
   withKeys: (draft: D) => R;
   withoutKeys: (rows: R) => D;
 }): EntryEditor<R> {
-  const [state, action, pending] = useActionState(saveEntry, {
+  const [state, action, pending] = useActionState(save, {
     status: "idle",
     message: "",
     errors: {},
@@ -182,9 +183,7 @@ export function useEntryEditor<D, R>({
     field,
     described,
     internal: {
-      kind,
-      one,
-      id,
+      hidden,
       base,
       payload: JSON.stringify(withoutKeys(draft)),
       action,
@@ -205,7 +204,7 @@ export function EntryForm<R>({
   isPublished: boolean;
   children: React.ReactNode;
 }) {
-  const { kind, id, base, payload, action, state, dirty } = editor.internal;
+  const { hidden, base, payload, action, state, dirty } = editor.internal;
   const status = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -214,8 +213,9 @@ export function EntryForm<R>({
 
   return (
     <form action={action} className={styles.editor} noValidate>
-      <input type="hidden" name="kind" value={kind} />
-      <input type="hidden" name="id" value={id} />
+      {Object.entries(hidden).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
       <input type="hidden" name="updatedAt" value={base} />
       <input type="hidden" name="payload" value={payload} />
 

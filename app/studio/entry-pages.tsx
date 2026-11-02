@@ -234,7 +234,7 @@ export async function EntryEditPage({
   if (!Number.isSafeInteger(id) || id <= 0) notFound();
 
   const sql = getSql()!;
-  const [entry, revisions] = await Promise.all([getEntry(sql, spec, id), listRevisions(sql, id)]);
+  const [entry, revisions] = await Promise.all([getEntry(sql, spec, id), listRevisions(sql, `entry:${id}`)]);
   if (!entry) notFound();
 
   const name = spec.nameOf(entry.draft) || `Untitled ${spec.one}`;
