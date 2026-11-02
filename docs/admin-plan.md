@@ -209,7 +209,7 @@ Verified: `next build` exits 0, the public pages still prerender, and a value
 changed directly in Postgres appears in the prerendered HTML — so the pages
 read the database, not the seed.
 
-### 4 — Editors and publishing — **collections done**
+### 4 — Editors and publishing — **collections, projects and events done**
 Built for collections, at [/studio/collections](../app/studio/collections/page.tsx):
 list with create, reorder (renumbers `sort_order`), soft delete and restore;
 an editor for the collection and its pieces and photo lists; Save draft /
@@ -222,10 +222,25 @@ Access is `getStudioAccess()` in
 action. Publish runs `parseCollection()`, the public reader's own check.
 Public-facing writes call `updateTag("content:collection")`.
 
-Not yet: the same for projects, events, settings, nav and copy (the editor
-is specific to collections; the field-metadata generalisation below is still
-the plan once a second type needs it), preview/draft mode, revisions for
-reorder, and `cacheLife` on the readers.
+Projects and events followed on the same machinery, generalised rather than
+copied: a kind is a spec in [lib/studio/kinds/](../lib/studio/kinds/) (draft
+shape, save and publish checks, public path, whether it has addresses) plus
+an editor holding only its fields. The list and editor pages
+([app/studio/entry-pages.tsx](../app/studio/entry-pages.tsx)), every action
+([app/studio/actions.ts](../app/studio/actions.ts)) and the editor frame
+([app/studio/entry-editor.tsx](../app/studio/entry-editor.tsx)) are written
+once. Events have no page, so their slug is a row key set at creation and
+never part of the payload. Publishing projects and events runs
+`parseProject()` / `parseEvent()`, the public readers' own checks.
+
+This is the "one data-driven form" the plan below describes, done with typed
+per-kind field components rather than field metadata: three kinds with
+nested rows (pieces with photos, sections) fit components better than a
+metadata schema would.
+
+Not yet: settings, nav and copy (they are single `settings` rows, not lists,
+and want their own page), preview/draft mode, revisions for reorder, and
+`cacheLife` on the readers.
 
 The largest phase. One data-driven form over per-type field metadata rather
 than a bespoke page each: site settings, nav, page copy, collections and their

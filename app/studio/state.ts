@@ -1,4 +1,4 @@
-import type { FieldErrors } from "@/lib/studio/collections";
+import type { FieldErrors } from "@/lib/studio/kinds";
 
 /*
   Shapes shared by the studio forms and their Server Actions. Kept out of
@@ -14,4 +14,4 @@ export type EditorState = {
   updatedAt: string;
 };
 
-export type NewCollectionState = { error: string };
+export type NewEntryState = { error: string };

@@ -1,35 +1,24 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
 import { TONE_NAMES } from "@/components/motif-field";
-import type { CollectionDraft, PhotoDraft, PieceDraft } from "@/lib/studio/collections";
+import type { CollectionDraft, PhotoDraft, PieceDraft } from "@/lib/studio/kinds/collection";
+import { EntryForm, ImageField, move, rowKey, useEntryEditor } from "../../entry-editor";
 import styles from "../../studio.module.css";
-import { saveCollection } from "../actions";
-import type { EditorState } from "../state";
 
-/*
-  The collection editor.
-
-  The whole draft lives in local state and is sent as one JSON payload, so
-  pieces and photos can be added, removed and reordered freely before saving.
-  The server re-validates everything; the checks here are only the field
-  errors it sends back, shown next to the fields they belong to.
-*/
+/* The collection editor: its fields. Saving, versions and guards are the
+   shared EntryForm's. */
 
 type PhotoRow = PhotoDraft & { key: number };
 type PieceRow = Omit<PieceDraft, "photos"> & { key: number; photos: PhotoRow[] };
 type Draft = Omit<CollectionDraft, "pieces"> & { pieces: PieceRow[] };
-
-let nextKey = 1;
-const key = () => nextKey++;
 
 function withKeys(draft: CollectionDraft): Draft {
   return {
     ...draft,
     pieces: draft.pieces.map((piece) => ({
       ...piece,
-      key: key(),
-      photos: piece.photos.map((photo) => ({ ...photo, key: key() })),
+      key: rowKey(),
+      photos: piece.photos.map((photo) => ({ ...photo, key: rowKey() })),
     })),
   };
 }
@@ -44,13 +33,6 @@ function withoutKeys(draft: Draft): CollectionDraft {
   };
 }
 
-function move<T>(list: T[], from: number, to: number): T[] {
-  if (to < 0 || to >= list.length) return list;
-  const next = [...list];
-  [next[from], next[to]] = [next[to], next[from]];
-  return next;
-}
-
 export function CollectionEditor({
   id,
   initial,
@@ -62,129 +44,19 @@ export function CollectionEditor({
   updatedAt: string;
   isPublished: boolean;
 }) {
-  const [state, action, pending] = useActionState(saveCollection, {
-    status: "idle",
-    message: "",
-    errors: {},
-    updatedAt,
-  } satisfies EditorState);
-  const [draft, setDraft] = useState(() => withKeys(initial));
-  const [dirty, setDirty] = useState(false);
-  const [seen, setSeen] = useState(updatedAt);
-  /* The version this form is editing, sent back on save as the concurrency
-     check. It moves forward on this editor's own saves and when it adopts a
-     version written elsewhere — never only one of the two, or the next save
-     would be refused as a conflict with itself. */
-  const [base, setBase] = useState(updatedAt);
-  const status = useRef<HTMLParagraphElement>(null);
+  const editor = useEntryEditor({ kind: "collection", one: "collection", id, initial, updatedAt, withKeys, withoutKeys });
+  const { draft, update, reshape, errors, pending, field, described } = editor;
 
-  // A save clears the dirty flag and moves the base forward.
-  const [saved, setSaved] = useState(state);
-  /* Field errors name pieces and photos by position. Once rows are added,
-     removed or moved, those positions point at the wrong rows, so piece
-     errors are hidden until the next save re-checks the new order. */
-  const [reshaped, setReshaped] = useState(false);
-  if (saved !== state) {
-    setSaved(state);
-    setReshaped(false);
-    if (state.status === "saved" || state.status === "published") {
-      setDirty(false);
-      setBase(state.updatedAt);
-    }
-  }
-
-  /* The page re-renders after any change. If the new version came from this
-     editor's own save, keep the form as it is. If it came from elsewhere
-     (loading an old version, discarding edits), take the server's draft. */
-  if (updatedAt !== seen) {
-    setSeen(updatedAt);
-    if (updatedAt !== state.updatedAt) {
-      setDraft(withKeys(initial));
-      setDirty(false);
-      setBase(updatedAt);
-    }
-  }
-
-  // Leaving with unsaved edits asks first.
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    /* In-app links navigate without unloading the page, so beforeunload never
-       fires for them. Caught on the way down, before Next's <Link> sees the
-       click, so a cancelled click goes nowhere. */
-    const guard = (event: MouseEvent) => {
-      const link = (event.target as Element | null)?.closest?.("a[href]");
-      if (!link || link.getAttribute("target") === "_blank") return;
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      if (!window.confirm("Leave without saving? Your edits to this collection will be lost.")) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-    window.addEventListener("beforeunload", warn);
-    document.addEventListener("click", guard, true);
-    return () => {
-      window.removeEventListener("beforeunload", warn);
-      document.removeEventListener("click", guard, true);
-    };
-  }, [dirty]);
-
-  useEffect(() => {
-    if (state.status !== "idle") status.current?.focus();
-  }, [state]);
-
-  const errors = reshaped
-    ? Object.fromEntries(Object.entries(state.errors).filter(([path]) => !path.startsWith("pieces.")))
-    : state.errors;
-  const update = (change: (current: Draft) => Draft) => {
-    setDraft(change);
-    setDirty(true);
-  };
-  const setField = (field: keyof Omit<Draft, "pieces">, value: string) =>
-    update((current) => ({ ...current, [field]: value }));
-  /** For adding, removing and moving rows, which shifts every later index. */
-  const reshape = (change: (current: Draft) => Draft) => {
-    update(change);
-    setReshaped(true);
-  };
+  const setField = (name: keyof Omit<Draft, "pieces">, value: string) =>
+    update((current) => ({ ...current, [name]: value }));
   const setPiece = (index: number, change: (piece: PieceRow) => PieceRow, shape = false) =>
     (shape ? reshape : update)((current) => ({
       ...current,
       pieces: current.pieces.map((piece, i) => (i === index ? change(piece) : piece)),
     }));
 
-  const field = (
-    path: string,
-    label: string,
-    input: React.ReactElement,
-    hint?: string,
-  ) => (
-    <div className={styles.field}>
-      <label htmlFor={path} className={styles.label}>
-        {label}
-      </label>
-      {input}
-      {errors[path] ? (
-        <p id={`${path}-error`} className={styles.error}>
-          {errors[path]}
-        </p>
-      ) : hint ? (
-        <p id={`${path}-hint`} className={styles.hint}>
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  );
-
-  const described = (path: string, hint?: boolean) =>
-    errors[path] ? `${path}-error` : hint ? `${path}-hint` : undefined;
-
   return (
-    <form action={action} className={styles.editor} noValidate>
-      <input type="hidden" name="id" value={id} />
-      <input type="hidden" name="updatedAt" value={base} />
-      <input type="hidden" name="payload" value={JSON.stringify(withoutKeys(draft))} />
-
+    <EntryForm editor={editor} isPublished={isPublished}>
       <fieldset className={styles.fieldset} disabled={pending}>
         <legend className={styles.legend}>The collection</legend>
 
@@ -269,21 +141,7 @@ export function CollectionEditor({
           {errors.tone ? <p className={styles.error}>{errors.tone}</p> : null}
         </fieldset>
 
-        {field(
-          "image",
-          "Lead photo link (optional)",
-          <input
-            id="image"
-            type="url"
-            className={styles.input}
-            value={draft.image}
-            placeholder="https://ok2jcu82ma.ufs.sh/f/…"
-            onChange={(event) => setField("image", event.target.value)}
-            aria-invalid={errors.image ? true : undefined}
-            aria-describedby={described("image", true)}
-          />,
-          "From the UploadThing dashboard. Empty shows the pattern.",
-        )}
+        <ImageField editor={editor} label="Lead photo link (optional)" />
       </fieldset>
 
       <fieldset className={styles.fieldset} disabled={pending}>
@@ -421,7 +279,7 @@ export function CollectionEditor({
                   type="button"
                   className="ctaQuiet"
                   onClick={() =>
-                    setPiece(i, (p) => ({ ...p, photos: [...p.photos, { key: key(), src: "", alt: "" }] }), true)
+                    setPiece(i, (p) => ({ ...p, photos: [...p.photos, { key: rowKey(), src: "", alt: "" }] }), true)
                   }
                 >
                   Add a photo
@@ -437,41 +295,13 @@ export function CollectionEditor({
           onClick={() =>
             reshape((c) => ({
               ...c,
-              pieces: [...c.pieces, { key: key(), name: "", material: "", dimension: "", photos: [] }],
+              pieces: [...c.pieces, { key: rowKey(), name: "", material: "", dimension: "", photos: [] }],
             }))
           }
         >
           Add a piece
         </button>
       </fieldset>
-
-      <div className={styles.saveBar}>
-        <button type="submit" name="intent" value="save" className="ctaQuiet" disabled={pending}>
-          {pending ? "Saving…" : "Save draft"}
-        </button>
-        <button type="submit" name="intent" value="publish" className="cta" disabled={pending}>
-          {isPublished ? "Publish changes" : "Publish"}
-        </button>
-        <p
-          ref={status}
-          tabIndex={-1}
-          aria-live="polite"
-          className={
-            state.status === "saved" || state.status === "published"
-              ? styles.success
-              : state.status === "idle"
-                ? styles.meta
-                : styles.error
-          }
-        >
-          {/* After a save, further edits make the "saved" line stale. Errors stay
-              up until the next submit, since they say what still needs fixing. */}
-          {dirty && (state.status === "idle" || state.status === "saved" || state.status === "published")
-            ? "Unsaved edits."
-            : state.message}
-          {errors.form ? ` ${errors.form}` : ""}
-        </p>
-      </div>
-    </form>
+    </EntryForm>
   );
 }
