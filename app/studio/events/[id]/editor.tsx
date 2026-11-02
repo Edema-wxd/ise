@@ -21,9 +21,8 @@ export function EventEditor({
   isPublished: boolean;
 }) {
   const editor = useEntryEditor({
-    kind: "event",
     one: "event",
-    id,
+    hidden: { kind: "event", id },
     initial,
     updatedAt,
     withKeys: same,

@@ -44,7 +44,7 @@ export function CollectionEditor({
   updatedAt: string;
   isPublished: boolean;
 }) {
-  const editor = useEntryEditor({ kind: "collection", one: "collection", id, initial, updatedAt, withKeys, withoutKeys });
+  const editor = useEntryEditor({ one: "collection", hidden: { kind: "collection", id }, initial, updatedAt, withKeys, withoutKeys });
   const { draft, update, reshape, errors, pending, field, described } = editor;
 
   const setField = (name: keyof Omit<Draft, "pieces">, value: string) =>
