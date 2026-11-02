@@ -3,20 +3,15 @@
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { getSql } from "@/lib/db";
-import {
-  draftErrors,
-  publishErrors,
-  slugClaim,
-  slugify,
-  slugTakenMessage,
-  toDraft,
-  toPayload,
-  type FieldErrors,
-} from "@/lib/studio/collections";
+import { slugClaim, slugTakenMessage } from "@/lib/studio/entries";
+import { isKind, KINDS, slugify, type FieldErrors, type KindSpec } from "@/lib/studio/kinds";
 import { getStudioAccess } from "@/lib/studio/session";
-import type { EditorState, NewCollectionState } from "./state";
+import type { EditorState, NewEntryState } from "./state";
 
 /*
+  The studio's writes, for every kind of content entry. Each form says which
+  kind it edits in a hidden `kind` field, checked against the known kinds.
+
   Every action here is a public POST endpoint, whatever page it was rendered
   on, so each one re-checks access itself before touching a row.
 
@@ -28,21 +23,31 @@ import type { EditorState, NewCollectionState } from "./state";
   new version as "the draft was replaced". Unpublish, delete and restore
   leave the draft alone, so they leave `updated_at` alone too.
 
-  `content_entries.slug` holds the live address while a collection is
-  published, and the draft's address otherwise, so a renamed draft never
-  frees the live URL for another collection. `slugClaim()` checks a new
-  address against every draft, live and deleted address before it is used. The public cache is invalidated only
-  when what visitors see changes: publish, unpublish, delete, restore and
-  reorder. A saved draft is invisible to the site, so it invalidates nothing.
+  For a kind with pages, `content_entries.slug` holds the live address while
+  an entry is published and the draft's address otherwise, so a renamed
+  draft never frees the live URL for another entry; `slugClaim()` checks a
+  new address against every draft, live and deleted address before it is
+  used. For a kind without pages (events) the slug is only the row's key: set
+  once from the title at creation, never changed. `coalesce(…->>'slug', slug)`
+  below is what keeps it: those payloads carry no slug.
+
+  The public cache is invalidated only when what visitors see changes:
+  publish, unpublish, delete, restore and reorder. A saved draft is
+  invisible to the site, so it invalidates nothing.
 */
 
-const PUBLIC_TAG = "content:collection";
+const SIGNED_OUT = "You are signed out, or this account is not on the studio list.";
 
 async function access() {
   const sql = getSql();
   const studio = await getStudioAccess();
   if (!sql || !studio.ok) return null;
   return { sql, actor: studio.email };
+}
+
+function specOf(form: FormData): KindSpec<any> | null {
+  const kind = form.get("kind");
+  return isKind(kind) ? KINDS[kind] : null;
 }
 
 function int(form: FormData, field: string): number | null {
@@ -56,32 +61,41 @@ function isUniqueViolation(error: unknown): boolean {
 
 /* ---- Create ---- */
 
-export async function createCollection(
-  _previous: NewCollectionState,
-  form: FormData,
-): Promise<NewCollectionState> {
+export async function createEntry(_previous: NewEntryState, form: FormData): Promise<NewEntryState> {
+  const spec = specOf(form);
+  if (!spec) return { error: "That form is out of date. Reload the page." };
   const ctx = await access();
-  if (!ctx) return { error: "You are signed out, or this account is not on the studio list." };
+  if (!ctx) return { error: SIGNED_OUT };
 
   const name = String(form.get("name") ?? "").trim();
-  if (!name) return { error: "Give the new collection a name." };
-  const slug = slugify(name);
-  if (!slug) return { error: "Use at least one letter or number in the name." };
+  if (!name) return { error: `Give the new ${spec.one} a name.` };
+  const base = slugify(name);
+  if (!base) return { error: "Use at least one letter or number in the name." };
 
-  const claim = await slugClaim(ctx.sql, null, slug);
-  if (claim) return { error: `${slugTakenMessage(slug, claim)} Pick another name.` };
+  let slug = base;
+  const claim = await slugClaim(ctx.sql, spec, null, slug);
+  if (claim && spec.addressed) {
+    return { error: `${slugTakenMessage(spec, slug, claim)} Pick another name.` };
+  }
+  if (claim) {
+    // No page, so the key is internal: number it rather than refuse the name.
+    for (let n = 2; n < 100; n++) {
+      slug = `${base.slice(0, 110)}-${n}`;
+      if (!(await slugClaim(ctx.sql, spec, null, slug))) break;
+    }
+  }
 
-  const draft = JSON.stringify(toPayload({ ...toDraft({ name, slug }), pieces: [] }));
+  const draft = JSON.stringify(spec.toPayload(spec.newDraft(name, slug)));
 
   let id: number;
   try {
-    // New collections go to the end of the list, unpublished.
+    // New entries go to the end of the list, unpublished.
     const rows = await ctx.sql`
       with created as (
         insert into content_entries (kind, slug, sort_order, draft)
         values (
-          'collection', ${slug},
-          (select coalesce(max(sort_order), -1) + 1 from content_entries where kind = 'collection'),
+          ${spec.kind}, ${slug},
+          (select coalesce(max(sort_order), -1) + 1 from content_entries where kind = ${spec.kind}),
           ${draft}::jsonb
         )
         returning id, draft
@@ -94,60 +108,56 @@ export async function createCollection(
     id = Number((rows[0] as { id: string | number }).id);
   } catch (error) {
     if (isUniqueViolation(error)) {
-      return { error: `Another collection already uses /collections/${slug}. Pick another name.` };
+      return { error: `Another ${spec.one} already uses ${spec.publicPath(slug)}. Pick another name.` };
     }
-    console.error("createCollection: insert failed", error);
+    console.error("createEntry: insert failed", error);
     return { error: "That did not save. Try again." };
   }
 
-  redirect(`/studio/collections/${id}`);
+  redirect(`${spec.studioPath}/${id}`);
 }
 
 /* ---- Save and publish ---- */
 
-export async function saveCollection(previous: EditorState, form: FormData): Promise<EditorState> {
+export async function saveEntry(previous: EditorState, form: FormData): Promise<EditorState> {
+  const stale = { ...previous, status: "error" as const, errors: {}, message: "That form is out of date. Reload the page." };
+  const spec = specOf(form);
+  if (!spec) return stale;
   const ctx = await access();
-  if (!ctx) {
-    return { ...previous, status: "error", errors: {}, message: "You are signed out, or this account is not on the studio list." };
-  }
+  if (!ctx) return { ...previous, status: "error", errors: {}, message: SIGNED_OUT };
 
   const id = int(form, "id");
   const updatedAt = String(form.get("updatedAt") ?? "");
   const intent = form.get("intent") === "publish" ? "publish" : "save";
-  if (!id || !updatedAt) return { ...previous, status: "error", errors: {}, message: "That form is out of date. Reload the page." };
+  if (!id || !updatedAt) return stale;
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(String(form.get("payload") ?? ""));
   } catch {
-    return { ...previous, status: "error", errors: {}, message: "That form is out of date. Reload the page." };
+    return stale;
   }
 
-  const draft = toDraft(parsed);
-  const errors: FieldErrors = intent === "publish" ? publishErrors(draft) : draftErrors(draft);
+  const draft = spec.toDraft(parsed);
+  const refused =
+    intent === "publish"
+      ? "Not published. Fix the marked fields first; your edits are still here."
+      : "Not saved. Fix the marked fields first.";
+  const errors: FieldErrors = intent === "publish" ? spec.publishErrors(draft) : spec.draftErrors(draft);
   if (Object.keys(errors).length > 0) {
-    return {
-      ...previous,
-      status: "invalid",
-      errors,
-      message:
-        intent === "publish"
-          ? "Not published. Fix the marked fields first; your edits are still here."
-          : "Not saved. Fix the marked fields first.",
-    };
+    return { ...previous, status: "invalid", errors, message: refused };
   }
 
-  const claim = await slugClaim(ctx.sql, id, draft.slug);
-  if (claim) {
-    return {
-      ...previous,
-      status: "invalid",
-      errors: { slug: slugTakenMessage(draft.slug, claim) },
-      message: intent === "publish" ? "Not published. Fix the marked fields first; your edits are still here." : "Not saved. Fix the marked fields first.",
-    };
+  // Null for a kind without pages: the row keeps its key.
+  const slug = spec.addressed ? spec.slugOf(draft) : null;
+  if (slug) {
+    const claim = await slugClaim(ctx.sql, spec, id, slug);
+    if (claim) {
+      return { ...previous, status: "invalid", errors: { slug: slugTakenMessage(spec, slug, claim) }, message: refused };
+    }
   }
 
-  const payload = JSON.stringify(toPayload(draft));
+  const payload = JSON.stringify(spec.toPayload(draft));
 
   let rows: Record<string, unknown>[];
   try {
@@ -159,8 +169,8 @@ export async function saveCollection(previous: EditorState, form: FormData): Pro
             with updated as (
               update content_entries
                  set draft = ${payload}::jsonb, published = ${payload}::jsonb,
-                     slug = ${draft.slug}, published_at = now(), updated_at = now()
-               where id = ${id} and kind = 'collection' and deleted_at is null
+                     slug = coalesce(${slug}, slug), published_at = now(), updated_at = now()
+               where id = ${id} and kind = ${spec.kind} and deleted_at is null
                  and updated_at = ${updatedAt}::timestamptz
               returning id, updated_at
             ), rev as (
@@ -173,10 +183,10 @@ export async function saveCollection(previous: EditorState, form: FormData): Pro
             with updated as (
               update content_entries
                  set draft = ${payload}::jsonb, updated_at = now(),
-                     -- A live collection keeps its live address in the column
+                     -- A live entry keeps its live address in the column
                      -- until the new one is published.
-                     slug = case when published is null then ${draft.slug} else slug end
-               where id = ${id} and kind = 'collection' and deleted_at is null
+                     slug = case when published is null then coalesce(${slug}, slug) else slug end
+               where id = ${id} and kind = ${spec.kind} and deleted_at is null
                  and updated_at = ${updatedAt}::timestamptz
               returning id, updated_at
             ), rev as (
@@ -186,15 +196,15 @@ export async function saveCollection(previous: EditorState, form: FormData): Pro
             select updated_at::text as updated_at from updated
           `;
   } catch (error) {
-    if (isUniqueViolation(error)) {
+    if (isUniqueViolation(error) && slug) {
       return {
         ...previous,
         status: "invalid",
-        errors: { slug: `Another collection already uses /collections/${draft.slug}.` },
-        message: "Not saved. Fix the marked fields first.",
+        errors: { slug: `Another ${spec.one} already uses ${spec.publicPath(slug)}.` },
+        message: refused,
       };
     }
-    console.error("saveCollection: update failed", error);
+    console.error("saveEntry: update failed", error);
     return { ...previous, status: "error", errors: {}, message: "That did not save. Your edits are still here; try again." };
   }
 
@@ -203,12 +213,11 @@ export async function saveCollection(previous: EditorState, form: FormData): Pro
       ...previous,
       status: "conflict",
       errors: {},
-      message:
-        "Someone saved this collection after you opened it, or it was deleted. Copy anything you need, then reload to see their version.",
+      message: `Someone saved this ${spec.one} after you opened it, or it was deleted. Copy anything you need, then reload to see their version.`,
     };
   }
 
-  if (intent === "publish") updateTag(PUBLIC_TAG);
+  if (intent === "publish") updateTag(spec.tag);
   refresh();
 
   return {
@@ -225,41 +234,40 @@ export async function saveCollection(previous: EditorState, form: FormData): Pro
    caller without access is sent to sign in rather than told why, since a
    real studio user only gets here with an expired session. */
 
-async function guarded() {
+async function guarded(form: FormData) {
+  const spec = specOf(form);
   const ctx = await access();
   if (!ctx) redirect("/auth/sign-in");
-  return ctx;
+  return { ...ctx, spec, id: int(form, "id") };
 }
 
-/** Takes the collection off the site. The draft stays. */
-export async function unpublishCollection(form: FormData) {
-  const { sql, actor } = await guarded();
-  const id = int(form, "id");
-  if (!id) return;
+/** Takes the entry off the site. The draft stays. */
+export async function unpublishEntry(form: FormData) {
+  const { sql, actor, spec, id } = await guarded(form);
+  if (!spec || !id) return;
   await sql`
     with updated as (
       update content_entries
-         set published = null, published_at = null, slug = draft->>'slug'
-       where id = ${id} and kind = 'collection' and published is not null
+         set published = null, published_at = null, slug = coalesce(draft->>'slug', slug)
+       where id = ${id} and kind = ${spec.kind} and published is not null
       returning id
     )
     insert into content_revisions (target, action, payload, actor)
     select 'entry:' || id, 'unpublish', null, ${actor} from updated
   `;
-  updateTag(PUBLIC_TAG);
+  updateTag(spec.tag);
   refresh();
 }
 
 /** Throws away unpublished edits: the draft becomes the live version again. */
-export async function revertCollection(form: FormData) {
-  const { sql, actor } = await guarded();
-  const id = int(form, "id");
-  if (!id) return;
+export async function revertEntry(form: FormData) {
+  const { sql, actor, spec, id } = await guarded(form);
+  if (!spec || !id) return;
   await sql`
     with updated as (
       update content_entries
          set draft = published, updated_at = now()
-       where id = ${id} and kind = 'collection' and published is not null
+       where id = ${id} and kind = ${spec.kind} and published is not null
       returning id, draft
     )
     insert into content_revisions (target, action, payload, actor)
@@ -271,22 +279,25 @@ export async function revertCollection(form: FormData) {
 /** Copies an earlier version from the history into the draft. Nothing goes
  *  live until it is published. */
 export async function loadRevision(form: FormData) {
-  const { sql, actor } = await guarded();
-  const id = int(form, "id");
+  const { sql, actor, spec, id } = await guarded(form);
   const revision = int(form, "revision");
-  if (!id || !revision) return;
+  if (!spec || !id || !revision) return;
 
-  // An old version may carry an address another collection has taken since.
-  // Say so instead of loading half of it or failing silently.
+  // An old version may carry an address another entry has taken since. Say
+  // so instead of loading half of it or failing silently.
   const source = await sql`
     select payload->>'slug' as slug from content_revisions
      where id = ${revision} and target = ${`entry:${id}`} and payload is not null
   `;
-  const slug = (source[0] as { slug?: string } | undefined)?.slug;
-  if (!slug) return;
-  const claim = await slugClaim(sql, id, slug);
-  if (claim) {
-    redirect(`/studio/collections/${id}?notice=${claim === "deleted" ? "slug-deleted" : "slug-taken"}&slug=${encodeURIComponent(slug)}`);
+  if (source.length === 0) return;
+  const slug = (source[0] as { slug?: string | null }).slug;
+  if (spec.addressed && slug) {
+    const claim = await slugClaim(sql, spec, id, slug);
+    if (claim) {
+      redirect(
+        `${spec.studioPath}/${id}?notice=${claim === "deleted" ? "slug-deleted" : "slug-taken"}&slug=${encodeURIComponent(slug)}`,
+      );
+    }
   }
 
   await sql`
@@ -296,8 +307,10 @@ export async function loadRevision(form: FormData) {
     ), updated as (
       update content_entries
          set draft = (select payload from source), updated_at = now(),
-             slug = case when published is null then (select payload->>'slug' from source) else slug end
-       where id = ${id} and kind = 'collection' and exists (select 1 from source)
+             slug = case when published is null
+                         then coalesce((select payload->>'slug' from source), slug)
+                         else slug end
+       where id = ${id} and kind = ${spec.kind} and exists (select 1 from source)
       returning id, draft
     )
     insert into content_revisions (target, action, payload, actor)
@@ -308,56 +321,53 @@ export async function loadRevision(form: FormData) {
 
 /** Soft delete: off the site and out of the list, restorable from the
  *  "Deleted" section. */
-export async function deleteCollection(form: FormData) {
-  const { sql, actor } = await guarded();
-  const id = int(form, "id");
-  if (!id) return;
+export async function deleteEntry(form: FormData) {
+  const { sql, actor, spec, id } = await guarded(form);
+  if (!spec || !id) return;
   await sql`
     with updated as (
       update content_entries set deleted_at = now()
-       where id = ${id} and kind = 'collection' and deleted_at is null
+       where id = ${id} and kind = ${spec.kind} and deleted_at is null
       returning id
     )
     insert into content_revisions (target, action, payload, actor)
     select 'entry:' || id, 'delete', null, ${actor} from updated
   `;
-  updateTag(PUBLIC_TAG);
-  redirect("/studio/collections");
+  updateTag(spec.tag);
+  redirect(spec.studioPath);
 }
 
-/** Brings a deleted collection back at the end of the list, with whatever
+/** Brings a deleted entry back at the end of the list, with whatever
  *  published state it had. */
-export async function restoreCollection(form: FormData) {
-  const { sql, actor } = await guarded();
-  const id = int(form, "id");
-  if (!id) return;
+export async function restoreEntry(form: FormData) {
+  const { sql, actor, spec, id } = await guarded(form);
+  if (!spec || !id) return;
   await sql`
     with updated as (
       update content_entries
          set deleted_at = null,
              sort_order = (select coalesce(max(sort_order), -1) + 1 from content_entries
-                            where kind = 'collection' and deleted_at is null)
-       where id = ${id} and kind = 'collection' and deleted_at is not null
+                            where kind = ${spec.kind} and deleted_at is null)
+       where id = ${id} and kind = ${spec.kind} and deleted_at is not null
       returning id
     )
     insert into content_revisions (target, action, payload, actor)
     select 'entry:' || id, 'restore', null, ${actor} from updated
   `;
-  updateTag(PUBLIC_TAG);
+  updateTag(spec.tag);
   refresh();
 }
 
-/** Moves a collection one place up or down. The whole list is renumbered
- *  0..n so gaps and ties left by earlier edits do not accumulate. */
-export async function moveCollection(form: FormData) {
-  const { sql } = await guarded();
-  const id = int(form, "id");
+/** Moves an entry one place up or down. The whole list is renumbered 0..n so
+ *  gaps and ties left by earlier edits do not accumulate. */
+export async function moveEntry(form: FormData) {
+  const { sql, spec, id } = await guarded(form);
   const step = form.get("direction") === "up" ? -1 : 1;
-  if (!id) return;
+  if (!spec || !id) return;
 
   const rows = await sql`
     select id from content_entries
-     where kind = 'collection' and deleted_at is null
+     where kind = ${spec.kind} and deleted_at is null
      order by sort_order, id
   `;
   const ids = (rows as { id: string | number }[]).map((row) => Number(row.id));
@@ -370,8 +380,8 @@ export async function moveCollection(form: FormData) {
     update content_entries as c
        set sort_order = v.ord
       from unnest(${ids}::bigint[], ${ids.map((_, i) => i)}::int[]) as v(id, ord)
-     where c.id = v.id and c.kind = 'collection'
+     where c.id = v.id and c.kind = ${spec.kind}
   `;
-  updateTag(PUBLIC_TAG);
+  updateTag(spec.tag);
   refresh();
 }
