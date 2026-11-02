@@ -157,7 +157,7 @@ Handled by the adopted layer:
 - Neon Auth owns password hashing, sessions and the cookie. `NEON_AUTH_COOKIE_SECRET` is ours and must be 32+ characters.
 - `STUDIO_EMAILS` is the single-account allowlist; `STUDIO_ORIGINS` is the Function's CORS list, and needs the deployed origin before launch.
 - Server Actions carry Next's built-in origin check, so no separate CSRF token.
-- The UploadThing route is closed unless `UPLOADTHING_UPLOAD_SECRET` is set.
+- The UploadThing route checks the studio session and `STUDIO_EMAILS` in its middleware, the same rule as every page and action. The shared-secret gate it shipped with is gone.
 
 Still ours to do:
 

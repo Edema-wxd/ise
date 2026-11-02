@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { saveEntry } from "./actions";
+import { PhotoPreview, PhotoUpload } from "./photo-upload";
 import type { EditorState } from "./state";
 import styles from "./studio.module.css";
 
@@ -252,7 +253,7 @@ export function EntryForm<R>({
   );
 }
 
-/** The image-link field every kind has. */
+/** The lead photo every kind has: upload one, or paste a link. */
 export function ImageField<R extends { image: string }>({
   editor,
   label,
@@ -261,19 +262,29 @@ export function ImageField<R extends { image: string }>({
   label: string;
 }) {
   const { draft, update, errors, field, described } = editor;
-  return field(
-    "image",
-    label,
-    <input
-      id="image"
-      type="url"
-      className={styles.input}
-      value={draft.image}
-      placeholder="https://ok2jcu82ma.ufs.sh/f/…"
-      onChange={(event) => update((current) => ({ ...current, image: event.target.value }))}
-      aria-invalid={errors.image ? true : undefined}
-      aria-describedby={described("image", true)}
-    />,
-    "From the UploadThing dashboard. Empty shows the pattern.",
+  const setImage = (image: string) => update((current) => ({ ...current, image }));
+  return (
+    <div className={styles.photo}>
+      {field(
+        "image",
+        label,
+        <input
+          id="image"
+          type="url"
+          className={styles.input}
+          value={draft.image}
+          placeholder="https://ok2jcu82ma.ufs.sh/f/…"
+          onChange={(event) => setImage(event.target.value)}
+          aria-invalid={errors.image ? true : undefined}
+          aria-describedby={described("image", true)}
+        />,
+        "Upload a photo, or paste an UploadThing link. Empty shows the pattern.",
+      )}
+      <PhotoPreview src={draft.image} />
+      <PhotoUpload
+        label={draft.image ? "Replace photo" : "Upload photo"}
+        onUploaded={([url]) => url && setImage(url)}
+      />
+    </div>
   );
 }

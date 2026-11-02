@@ -1,48 +1,46 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { UploadThingError } from "uploadthing/server";
+import { getStudioAccess } from "@/lib/studio/session";
 
 const f = createUploadthing();
 
 /**
- * Upload endpoints for studio media.
+ * Upload endpoint for studio photography, used by the upload buttons in the
+ * studio editors (app/studio/photo-upload.tsx).
  *
- * SECURE BY DEFAULT: this site has no user accounts, and a Server Action or
- * route handler that accepts uploads is reachable by anyone who finds the URL.
- * So uploads are refused unless `UPLOADTHING_UPLOAD_SECRET` is set and the
- * request presents it. With the variable unset — which is how the repo ships —
- * every upload is rejected and the endpoint is inert.
+ * The route is public, like any route handler, so the check is in the
+ * middleware: the same session-and-allowlist rule every studio page and
+ * Server Action applies (lib/studio/session.ts). It fails closed. With Neon
+ * Auth or the database unconfigured, or a caller who is signed out or not on
+ * `STUDIO_EMAILS`, nothing is uploaded.
  *
- * That is deliberate: files can be uploaded from the UploadThing dashboard
- * today without this route being open at all. Open it only when there is a
- * studio-facing uploader to put behind it, and replace the shared secret with
- * a real session check at that point.
+ * `UPLOADTHING_TOKEN` is what ties this route to the studio's UploadThing
+ * app. Without it UploadThing itself refuses the upload.
  */
-function assertStudio(req: Request) {
-  const secret = process.env.UPLOADTHING_UPLOAD_SECRET;
-
-  if (!secret) {
+async function assertStudio() {
+  const access = await getStudioAccess();
+  if (!access.ok) {
     throw new UploadThingError(
-      "Uploads are closed. Set UPLOADTHING_UPLOAD_SECRET to open this endpoint.",
+      access.reason === "unconfigured" ? "Studio sign-in is not set up." : "Sign in to the studio to upload.",
     );
   }
-
-  if (req.headers.get("x-studio-secret") !== secret) {
-    throw new UploadThingError("Unauthorized");
-  }
-
-  return { uploadedBy: "studio" as const };
+  return { uploadedBy: access.email };
 }
 
 export const ourFileRouter = {
-  /** Product, project and event photography. */
-  studioMedia: f({
-    image: { maxFileSize: "8MB", maxFileCount: 20 },
-  })
-    .middleware(async ({ req }) => assertStudio(req))
-    .onUploadComplete(async ({ file }) => {
-      // Nothing persists the URL yet — paste it into lib/content.ts. If an
-      // uploader gets built, write it to Neon here instead.
-      console.log("uploadthing: stored", file.ufsUrl);
+  /** Collection, project and event photography. */
+  studioMedia: f(
+    { image: { maxFileSize: "16MB", maxFileCount: 20 } },
+    /* The editor takes the link from the upload itself, so it need not wait
+       for UploadThing's callback to this server. That keeps a phone upload
+       quick, and working on a preview URL the callback cannot reach. */
+    { awaitServerData: false },
+  )
+    .middleware(() => assertStudio())
+    .onUploadComplete(({ file, metadata }) => {
+      // The link goes back to the editor, which puts it in the draft. Nothing
+      // is public until that draft is published.
+      console.log("uploadthing: stored", file.ufsUrl, "for", metadata.uploadedBy);
       return { url: file.ufsUrl };
     }),
 } satisfies FileRouter;

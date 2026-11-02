@@ -167,13 +167,21 @@ in swaps the photograph in without the layout shifting. See
 - `UPLOADTHING_APP_ID` pins [next.config.mjs](next.config.mjs) to your own
   `<APP_ID>.ufs.sh` subdomain. Unset, any `*.ufs.sh` host is allowed, which is
   fine locally and should be narrowed in production.
-- `UPLOADTHING_TOKEN` is only needed for uploads made **through the app**.
-  Uploading from the UploadThing dashboard needs nothing here.
-- [app/api/uploadthing/core.ts](app/api/uploadthing/core.ts) is **closed by
-  default**. The site has no accounts, and an open upload route is a liability,
-  so every upload is rejected unless `UPLOADTHING_UPLOAD_SECRET` is set and
-  presented. Open it only when there is a studio-facing uploader to put behind
-  it, and swap the shared secret for a real session check then.
+- `UPLOADTHING_TOKEN` connects the studio's upload buttons to the UploadThing
+  app. Copy it from the UploadThing dashboard (API Keys) into the host's
+  environment. Without it, uploads from the studio fail and say so; pasting a
+  link still works.
+- **Uploading from the studio.** Every photo field in the editors has an
+  *Upload photo* button, and each collection piece has *Upload photos* for
+  several at once. On a phone it opens the camera roll or camera. The photo
+  goes to UploadThing, its link lands in the field with a thumbnail, and it
+  goes public only when the draft is published. Pasting a link from the
+  UploadThing dashboard still works too.
+- [app/api/uploadthing/core.ts](app/api/uploadthing/core.ts) applies the same
+  check as every studio page and action: signed in, and on `STUDIO_EMAILS`
+  ([lib/studio/session.ts](lib/studio/session.ts)). Anyone else is refused,
+  and with Neon Auth unconfigured nobody can upload. Images only, up to 16 MB
+  each.
 
 ## Design
 
