@@ -463,3 +463,51 @@ a.entryName:hover {
   padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--ink-rule);
 }
+
+/* ---- Photo upload ---- */
+
+.upload {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+  min-width: 0;
+}
+
+/* The phone's way in: a full-size tap target that opens the camera roll. */
+.uploadButton {
+  min-height: 2.75rem;
+  padding: 0.6rem 1.1rem;
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-size: var(--size-small);
+  font-weight: 500;
+  color: var(--eggplant);
+  background-color: var(--peach);
+  border: 1px solid var(--eggplant);
+  cursor: pointer;
+}
+
+/* Hover only where there is a pointer: on a phone a tap would leave it lit. */
+@media (hover: hover) {
+  .uploadButton:hover:not(:disabled) {
+    background-color: var(--coral);
+  }
+}
+
+.uploadButton:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.upload .meta:empty,
+.upload .error:empty {
+  display: none;
+}
+
+.preview {
+  display: block;
+  width: 6rem;
+  height: 6rem;
+  object-fit: cover;
+  background-color: var(--peach);
+  border: 1px solid var(--ink-rule);
+}

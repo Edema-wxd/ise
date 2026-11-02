@@ -9,14 +9,17 @@ photography, use UploadThing.
 
 ## Getting an image onto the site
 
-1. Upload it in the UploadThing dashboard. No app configuration is needed for
-   this — the in-app upload route stays closed by default.
-2. Copy the file URL.
-3. Add it to the matching entry. Content lives in Postgres
-   (`content_entries`, see the main README), so that means the entry's draft
-   payload, then publish; the studio editor for this is Phase 4 of
-   [`docs/admin-plan.md`](../../docs/admin-plan.md). Before the database is
-   seeded, edit [`lib/content-seed.ts`](../../lib/content-seed.ts) instead:
+In the studio, open the entry and tap **Upload photo** on the photo field
+(or **Upload photos** under a collection piece to add several). On a phone
+this opens the camera roll or camera. The link fills in by itself; write what
+the photo shows, save, and publish when it is ready.
+
+Or, by hand:
+
+1. Upload it in the UploadThing dashboard.
+2. Copy the file URL and paste it into the photo field in the studio.
+3. Before the database is seeded, edit
+   [`lib/content-seed.ts`](../../lib/content-seed.ts) instead:
 
 Each collection's **pieces** take a list of `photos`, lead shot first. One
 photo shows on its own; two or more show as a row that swipes sideways:

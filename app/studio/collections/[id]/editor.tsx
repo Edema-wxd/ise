@@ -3,6 +3,7 @@
 import { TONE_NAMES } from "@/components/motif-field";
 import type { CollectionDraft, PhotoDraft, PieceDraft } from "@/lib/studio/kinds/collection";
 import { EntryForm, ImageField, move, rowKey, useEntryEditor } from "../../entry-editor";
+import { PhotoPreview, PhotoUpload } from "../../photo-upload";
 import styles from "../../studio.module.css";
 
 /* The collection editor: its fields. Saving, versions and guards are the
@@ -226,6 +227,17 @@ export function CollectionEditor({
                           aria-describedby={described(`${path}.src`)}
                         />,
                       )}
+                      <PhotoPreview src={photo.src} />
+                      <PhotoUpload
+                        label={photo.src ? "Replace photo" : "Upload photo"}
+                        onUploaded={([url]) =>
+                          url &&
+                          setPiece(i, (p) => ({
+                            ...p,
+                            photos: p.photos.map((ph, k) => (k === j ? { ...ph, src: url } : ph)),
+                          }))
+                        }
+                      />
                       {field(
                         `${path}.alt`,
                         "What it shows",
@@ -275,15 +287,33 @@ export function CollectionEditor({
                     </div>
                   );
                 })}
-                <button
-                  type="button"
-                  className="ctaQuiet"
-                  onClick={() =>
-                    setPiece(i, (p) => ({ ...p, photos: [...p.photos, { key: rowKey(), src: "", alt: "" }] }), true)
-                  }
-                >
-                  Add a photo
-                </button>
+                <div className={styles.inline}>
+                  {/* Each pick adds a row per photo, in the order picked. The
+                      "What it shows" line is still to write for each. */}
+                  <PhotoUpload
+                    label="Upload photos"
+                    multiple
+                    onUploaded={(urls) =>
+                      setPiece(
+                        i,
+                        (p) => ({
+                          ...p,
+                          photos: [...p.photos, ...urls.map((src) => ({ key: rowKey(), src, alt: "" }))],
+                        }),
+                        true,
+                      )
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.textButton}
+                    onClick={() =>
+                      setPiece(i, (p) => ({ ...p, photos: [...p.photos, { key: rowKey(), src: "", alt: "" }] }), true)
+                    }
+                  >
+                    Add a photo by link
+                  </button>
+                </div>
               </div>
             </div>
           );
