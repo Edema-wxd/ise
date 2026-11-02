@@ -263,6 +263,12 @@ function asCollection(value: unknown): Collection | null {
   return { slug, name, summary, intro, tone: t, image: optionalStr(value.image), pieces };
 }
 
+/** The public reader's check for a project, exported for the studio's
+ *  publish step, like `parseCollection`. */
+export function parseProject(value: unknown): Project | null {
+  return asProject(value);
+}
+
 function asProject(value: unknown): Project | null {
   if (!isRecord(value)) return null;
   const slug = str(value.slug);
@@ -284,6 +290,12 @@ function asProject(value: unknown): Project | null {
     : [];
 
   return { slug, title, year, role, summary, image: optionalStr(value.image), sections };
+}
+
+/** The public reader's check for an event, exported for the studio's
+ *  publish step, like `parseCollection`. */
+export function parseEvent(value: unknown): Event | null {
+  return asEvent(value);
 }
 
 function asEvent(value: unknown): Event | null {

@@ -55,12 +55,25 @@ when `DATABASE_URL` is unset or Postgres cannot be reached — so a checkout
 with no env still renders a complete site. Once the database is seeded,
 editing that file changes nothing.
 
-### Editing collections
+### Editing collections, projects and events
 
-Collections are edited at [/studio/collections](app/studio/collections/page.tsx):
-create, reorder, delete and restore them, and edit each one's text, tone,
-lead photo and pieces (with photo lists) at `/studio/collections/<id>`.
+The studio edits three kinds of content, each with a list and an editor:
 
+| Kind | List | Editor fields |
+|---|---|---|
+| Collections | [/studio/collections](app/studio/collections/page.tsx) | name, web address, summary, intro, tone, lead photo, pieces (with photo lists) |
+| Projects | [/studio/projects](app/studio/projects/page.tsx) | title, web address, year, role, summary, lead photo, story sections |
+| Events | [/studio/events](app/studio/events/page.tsx) | name, venue, year, note, photo |
+
+Each list creates, reorders, deletes and restores entries; each entry is
+edited at `/studio/<kind>/<id>`.
+
+- **One implementation.** The pages, the actions and the editor frame are
+  written once ([app/studio/entry-pages.tsx](app/studio/entry-pages.tsx),
+  [app/studio/actions.ts](app/studio/actions.ts),
+  [app/studio/entry-editor.tsx](app/studio/entry-editor.tsx)). A kind is a
+  spec in [lib/studio/kinds/](lib/studio/kinds/) (its draft shape and what it
+  needs to save and to publish) plus an editor with its fields.
 - **Drafts and publishing.** Edits save as a draft that only the studio sees.
   *Publish* copies the draft to the live site; *Unpublish* takes it off;
   *Discard unpublished edits* resets the draft to what is live. A draft may be
@@ -69,10 +82,12 @@ lead photo and pieces (with photo lists) at `/studio/collections/<id>`.
 - **History.** Every save, publish, unpublish, discard, delete and restore
   writes a `content_revisions` row with who did it, in the same statement as
   the change. Any earlier version can be loaded back into the draft.
-- **Web addresses.** Changing a live collection's address takes effect on
-  publish; until then the live page stays where it is. An address stays
-  reserved while any collection's draft, live version or deleted copy uses
-  it, so two collections can never be served at one URL.
+- **Web addresses.** Collections and projects have pages. Changing a live
+  one's address takes effect on publish; until then the live page stays
+  where it is. An address stays reserved while any draft, live version or
+  deleted copy of that kind uses it, so two entries can never be served at
+  one URL. Events have no page of their own: they are listed on `/events`,
+  and their key is set from the name once, at creation.
 - **Two people at once.** Each save carries the version it was edited from;
   if someone saved in between, the save is refused rather than overwriting
   them. Reordering is not versioned or recorded.
@@ -80,11 +95,12 @@ lead photo and pieces (with photo lists) at `/studio/collections/<id>`.
   `STUDIO_EMAILS` allowlist against `neon_auth.user` — see
   [lib/studio/session.ts](lib/studio/session.ts). `STUDIO_EMAILS` must be set
   in the app's environment as well as the Function's.
-- **Cache.** Publish, unpublish, reorder, delete and restore call
-  `updateTag("content:collection")`, so the public pages show the change on
-  the next request. Saving a draft touches nothing public.
+- **Cache.** Publish, unpublish, reorder, delete and restore call `updateTag`
+  for the kind's tag (`content:collection`, `content:project`,
+  `content:event`), so the public pages show the change on the next request.
+  Saving a draft touches nothing public.
 
-Projects, events, site settings, nav and page copy are not editable yet (see
+Site settings, nav and page copy are not editable yet (see
 [docs/admin-plan.md](docs/admin-plan.md), Phase 4). Neither is preview: a draft
 is only visible in the editor until it is published.
 
