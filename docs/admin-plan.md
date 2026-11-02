@@ -238,9 +238,18 @@ per-kind field components rather than field metadata: three kinds with
 nested rows (pieces with photos, sections) fit components better than a
 metadata schema would.
 
-Not yet: settings, nav and copy (they are single `settings` rows, not lists,
-and want their own page), preview/draft mode, revisions for reorder, and
-`cacheLife` on the readers.
+Settings, nav and copy came last, as single `settings` rows rather than
+lists: a setting is a spec in
+[lib/studio/settings/](../lib/studio/settings/) (draft shape, checks, cache
+tag, seed for a row never saved), saved through
+[app/studio/settings/actions.ts](../app/studio/settings/actions.ts) and edited
+in the same editor frame, which now takes its save action and hidden fields
+as options. Publishing requires every field, because the public readers fill
+gaps from the seed and the editor should never show one thing while the site
+shows another. No unpublish or delete: a setting always has a live value.
+
+Not yet: preview/draft mode, revisions for reorder, and `cacheLife` on the
+readers.
 
 The largest phase. One data-driven form over per-type field metadata rather
 than a bespoke page each: site settings, nav, page copy, collections and their

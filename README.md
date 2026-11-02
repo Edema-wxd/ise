@@ -100,9 +100,17 @@ edited at `/studio/<kind>/<id>`.
   `content:event`), so the public pages show the change on the next request.
   Saving a draft touches nothing public.
 
-Site settings, nav and page copy are not editable yet (see
-[docs/admin-plan.md](docs/admin-plan.md), Phase 4). Neither is preview: a draft
-is only visible in the editor until it is published.
+**Settings** (`/studio/settings`) edits the three site-wide rows: site details
+(name, address, tagline, email, Instagram), the header and footer menu, and
+page copy (home headings, list-page intros, the custom-orders page, the footer
+prompt). Same draft, publish, discard and history as the content editors, and
+the same version check. Publishing needs every field filled, so the live site
+never quietly falls back to built-in text for a blank line; it calls
+`updateTag` for `content:settings:site|nav|copy`. The logo is not editable here:
+it is the client's mark, supplied as a file.
+
+Preview is not built yet (see [docs/admin-plan.md](docs/admin-plan.md),
+Phase 4): a draft is only visible in the editor until it is published.
 
 **The seed copy is placeholder.** It is written to the brand voice and to the
 right length for each slot, but no claim in it is client-approved. Replace it
