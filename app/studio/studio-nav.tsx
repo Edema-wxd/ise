@@ -6,6 +6,7 @@ const SECTIONS = [
   { href: "/studio/collections", label: "Collections" },
   { href: "/studio/projects", label: "Projects" },
   { href: "/studio/events", label: "Events" },
+  { href: "/studio/settings", label: "Settings" },
 ] as const;
 
 /** Moves between the studio's own pages. Separate from the public nav, which

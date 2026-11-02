@@ -2,10 +2,9 @@
 
 import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { getSql } from "@/lib/db";
 import { slugClaim, slugTakenMessage } from "@/lib/studio/entries";
 import { isKind, KINDS, slugify, type FieldErrors, type KindSpec } from "@/lib/studio/kinds";
-import { getStudioAccess } from "@/lib/studio/session";
+import { isUniqueViolation, SIGNED_OUT, studioContext as access } from "@/lib/studio/access";
 import type { EditorState, NewEntryState } from "./state";
 
 /*
@@ -36,15 +35,6 @@ import type { EditorState, NewEntryState } from "./state";
   invisible to the site, so it invalidates nothing.
 */
 
-const SIGNED_OUT = "You are signed out, or this account is not on the studio list.";
-
-async function access() {
-  const sql = getSql();
-  const studio = await getStudioAccess();
-  if (!sql || !studio.ok) return null;
-  return { sql, actor: studio.email };
-}
-
 function specOf(form: FormData): KindSpec<any> | null {
   const kind = form.get("kind");
   return isKind(kind) ? KINDS[kind] : null;
@@ -53,10 +43,6 @@ function specOf(form: FormData): KindSpec<any> | null {
 function int(form: FormData, field: string): number | null {
   const value = Number(form.get(field));
   return Number.isSafeInteger(value) && value > 0 ? value : null;
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return typeof error === "object" && error !== null && (error as { code?: string }).code === "23505";
 }
 
 /* ---- Create ---- */

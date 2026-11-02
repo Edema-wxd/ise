@@ -1,5 +1,6 @@
 import type { getSql } from "@/lib/db";
 import type { KindSpec } from "@/lib/studio/kinds";
+import type { SettingSpec } from "@/lib/studio/settings";
 
 type Sql = NonNullable<ReturnType<typeof getSql>>;
 
@@ -128,11 +129,13 @@ export function slugTakenMessage<D>(spec: KindSpec<D>, slug: string, claim: "liv
     : `Another ${spec.one} already uses ${spec.publicPath(slug)}.`;
 }
 
-export async function listRevisions(sql: Sql, id: number): Promise<Revision[]> {
+/** History for one target: `entry:<id>` for a content entry,
+ *  `settings:<key>` for a site-wide setting. */
+export async function listRevisions(sql: Sql, target: string): Promise<Revision[]> {
   const rows = await sql`
     select id, action, actor, created_at::text, payload is not null as has_payload
       from content_revisions
-     where target = ${`entry:${id}`}
+     where target = ${target}
      order by created_at desc, id desc
      limit 15
   `;
@@ -145,4 +148,52 @@ export async function listRevisions(sql: Sql, id: number): Promise<Revision[]> {
     createdAt: row.created_at,
     hasPayload: row.has_payload,
   }));
+}
+
+/** One site-wide setting as the studio sees it. */
+export type SettingState<D> = {
+  draft: D;
+  /** False before the first save: the row does not exist yet. */
+  exists: boolean;
+  isPublished: boolean;
+  hasChanges: boolean;
+  publishedAt: string | null;
+  /** The concurrency stamp, or "new" when there is no row to stamp yet. */
+  updatedAt: string;
+};
+
+export async function getSetting<D>(sql: Sql, spec: SettingSpec<D>): Promise<SettingState<D>> {
+  const rows = await sql`
+    select draft, published is not null as is_published,
+           draft is distinct from published as has_changes,
+           published_at::text, updated_at::text
+      from settings
+     where key = ${spec.key}
+  `;
+  if (rows.length === 0) {
+    // Never saved: the site is serving the seed, so the editor starts there.
+    return {
+      draft: spec.toDraft(spec.seed()),
+      exists: false,
+      isPublished: false,
+      hasChanges: true,
+      publishedAt: null,
+      updatedAt: "new",
+    };
+  }
+  const row = rows[0] as {
+    draft: unknown;
+    is_published: boolean;
+    has_changes: boolean;
+    published_at: string | null;
+    updated_at: string;
+  };
+  return {
+    draft: spec.toDraft(row.draft),
+    exists: true,
+    isPublished: row.is_published,
+    hasChanges: row.has_changes,
+    publishedAt: row.published_at,
+    updatedAt: row.updated_at,
+  };
 }

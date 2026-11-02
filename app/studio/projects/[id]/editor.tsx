@@ -29,7 +29,7 @@ export function ProjectEditor({
   updatedAt: string;
   isPublished: boolean;
 }) {
-  const editor = useEntryEditor({ kind: "project", one: "project", id, initial, updatedAt, withKeys, withoutKeys });
+  const editor = useEntryEditor({ one: "project", hidden: { kind: "project", id }, initial, updatedAt, withKeys, withoutKeys });
   const { draft, update, reshape, errors, pending, field, described } = editor;
 
   const setField = (name: keyof Omit<Draft, "sections">, value: string) =>
