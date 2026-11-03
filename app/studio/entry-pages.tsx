@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PageIntro } from "@/components/page-intro";
 import { getSql } from "@/lib/db";
+import { previewHref } from "@/lib/preview";
 import { getEntry, listEntries, listRevisions, type Entry } from "@/lib/studio/entries";
 import { KINDS, type Kind, type KindSpec } from "@/lib/studio/kinds";
 import { getStudioAccess } from "@/lib/studio/session";
@@ -296,6 +297,13 @@ export async function EntryEditPage({
 
           <aside className={styles.editorSide} aria-label="Publishing and history">
             <h2 className={styles.subheading}>On the site</h2>
+            <p className={styles.meta}>
+              <a href={previewHref(spec.publicPath(entry.slug))} target="_blank" rel="noopener">
+                Preview the saved draft ↗
+              </a>
+              <br />
+              Shows this and every other unpublished edit, as the site would. Save first.
+            </p>
             {entry.isPublished ? (
               <>
                 <p className={styles.meta}>
