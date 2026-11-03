@@ -1,0 +1,49 @@
+/* Coral, so it cannot be mistaken for the site's own eggplant header. */
+/* In the flow above the sticky header rather than sticky itself, so it
+   never covers the menu. */
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  padding: 0.625rem var(--gutter);
+  background: var(--coral);
+  color: var(--eggplant);
+  font-family: var(--font-ui);
+  font-size: var(--size-small);
+}
+
+.text {
+  margin: 0;
+  max-width: var(--measure);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.link {
+  color: inherit;
+  text-underline-offset: 0.2em;
+}
+
+.button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--paper);
+  background: var(--eggplant);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.button:focus-visible,
+.link:focus-visible {
+  outline: 2px solid var(--eggplant);
+  outline-offset: 3px;
+}

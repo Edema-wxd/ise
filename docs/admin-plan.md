@@ -248,8 +248,17 @@ as options. Publishing requires every field, because the public readers fill
 gaps from the seed and the editor should never show one thing while the site
 shows another. No unpublish or delete: a setting always has a live value.
 
-Not yet: preview/draft mode, revisions for reorder, and `cacheLife` on the
-readers.
+Preview is the readers' draft-mode branch, which was there from the start,
+plus a way in and out: [app/studio/preview/route.ts](../app/studio/preview/route.ts)
+checks the session and allowlist, enables draft mode and redirects to a
+same-site path ([lib/preview.ts](../lib/preview.ts) refuses anything else);
+the root layout shows a bar with "Exit preview" while it is on; sign-out ends
+it, since the bypass cookie would otherwise keep drafts visible in that
+browser. The cookie value is per build, not per person, so a copied cookie
+shows drafts to whoever holds it until the next deploy; drafts are not
+secret enough to warrant more.
+
+Not yet: revisions for reorder, and `cacheLife` on the readers.
 
 The largest phase. One data-driven form over per-type field metadata rather
 than a bespoke page each: site settings, nav, page copy, collections and their

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Alegreya, Bodoni_Moda, Space_Grotesk } from "next/font/google";
+import { Suspense } from "react";
+import { PreviewBar } from "@/components/preview-bar";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { getCollections, getLogo, getNav, getSite, withCollectionsMenu } from "@/lib/content";
@@ -97,6 +99,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${display.variable} ${ui.variable} ${body.variable}`}
     >
       <body>
+        <Suspense fallback={null}>
+          <PreviewBar />
+        </Suspense>
         <SiteHeader siteName={site.name} nav={withCollectionsMenu(nav, collections)} logo={logo} />
         {children}
         <SiteFooter />

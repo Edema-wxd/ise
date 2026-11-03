@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { previewHref } from "@/lib/preview";
 import { PageIntro } from "@/components/page-intro";
 import { getSql } from "@/lib/db";
 import { getSetting, listRevisions } from "@/lib/studio/entries";
@@ -74,6 +75,13 @@ export default async function EditSettingPage(props: PageProps<"/studio/settings
               <Link href="/" target="_blank" rel="noopener">
                 View the live site ↗
               </Link>
+            </p>
+            <p className={styles.meta}>
+              <a href={previewHref("/")} target="_blank" rel="noopener">
+                Preview the saved draft ↗
+              </a>
+              <br />
+              Shows this and every other unpublished edit, as the site would. Save first.
             </p>
             {state.isPublished && state.hasChanges ? (
               <form action={revertSetting}>

@@ -109,8 +109,15 @@ never quietly falls back to built-in text for a blank line; it calls
 `updateTag` for `content:settings:site|nav|copy`. The logo is not editable here:
 it is the client's mark, supplied as a file.
 
-Preview is not built yet (see [docs/admin-plan.md](docs/admin-plan.md),
-Phase 4): a draft is only visible in the editor until it is published.
+**Preview.** Every editor has "Preview the saved draft", which opens the page
+in a new tab with Next's draft mode on: the readers in
+[lib/content.ts](lib/content.ts) serve drafts instead of published content,
+including entries never published, and a coral bar at the top says so, with
+"Exit preview". Only saved edits show, all of them at once. The route
+([app/studio/preview/route.ts](app/studio/preview/route.ts)) checks the session
+and allowlist like any studio page and only redirects to a path on the site.
+Visitors are unaffected: the public pages stay cached. Preview lasts until
+"Exit preview", sign-out, closing the browser, or the next deploy.
 
 **The seed copy is placeholder.** It is written to the brand voice and to the
 right length for each slot, but no claim in it is client-approved. Replace it
